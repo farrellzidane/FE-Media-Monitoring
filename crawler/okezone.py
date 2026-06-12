@@ -1,22 +1,23 @@
 import requests
-from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 
 from models.article import Article
 
 from config.settings import (
-    KOMPAS_URL,
+    OKEZONE_URL,
     MAX_ARTICLES,
-    USER_AGENT,
+    DEFAULT_HEADERS,
     REQUEST_TIMEOUT
 )
 
 
-def get_latest_article_urls(limit=MAX_ARTICLES):
+def get_latest_article_urls(
+    limit=MAX_ARTICLES
+):
     response = requests.get(
-        KOMPAS_URL,
-        headers={"User-Agent": USER_AGENT},
+        OKEZONE_URL,
+        headers=DEFAULT_HEADERS,
         timeout=REQUEST_TIMEOUT
     )
 
@@ -38,13 +39,7 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
         if not href:
             continue
 
-        if "/read/" not in href:
-            continue
-
-        if "/opini/" in href:
-            continue
-
-        if "/kolom/" in href:
+        if ".okezone.com/read/" not in href:
             continue
 
         href = href.split("?")[0]
@@ -53,6 +48,7 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
             continue
 
         processed_urls.add(href)
+
         urls.append(href)
 
         if len(urls) >= limit:
@@ -64,7 +60,7 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
 def get_article(url):
     response = requests.get(
         url,
-        headers={"User-Agent": USER_AGENT},
+        headers=DEFAULT_HEADERS,
         timeout=REQUEST_TIMEOUT
     )
 
@@ -78,7 +74,10 @@ def get_article(url):
     h1 = soup.find("h1")
 
     if h1:
-        title = h1.get_text(" ", strip=True)
+        title = h1.get_text(
+            " ",
+            strip=True
+        )
     else:
         title = soup.title.text
 
@@ -87,7 +86,10 @@ def get_article(url):
     content_list = []
 
     for p in paragraphs:
-        text = p.get_text(" ", strip=True)
+        text = p.get_text(
+            " ",
+            strip=True
+        )
 
         if not text:
             continue
@@ -95,64 +97,43 @@ def get_article(url):
         if text == title:
             continue
 
-        if text == "Tim Redaksi":
-            continue
-
-        if text.startswith("Baca juga:"):
-            continue
-
-        if text.startswith("Lihat Foto"):
-            continue
-
-        if text.startswith("Kompas.com+"):
-            continue
-
-        if "Copyright 2008" in text:
-            continue
-
-        if "Dapatkan lebih banyak kuota" in text:
-            continue
-
-        if "artikel KOMPAS.com" in text:
-            continue
-
         content_list.append(text)
 
-    content = "\n".join(content_list)
+    content = "\n".join(
+        content_list
+    )
 
     published_date = ""
 
     parts = url.split("/")
 
     if "read" in parts:
-        read_index = parts.index("read")
+        idx = parts.index("read")
 
-        if len(parts) > read_index + 3:
+        if len(parts) > idx + 3:
             published_date = (
-                f"{parts[read_index + 1]}-"
-                f"{parts[read_index + 2]}-"
-                f"{parts[read_index + 3]}"
+                f"{parts[idx + 1]}-"
+                f"{parts[idx + 2]}-"
+                f"{parts[idx + 3]}"
             )
 
-    category = ""
+    category = "unknown"
 
-    parsed_url = urlparse(url)
+    try:
+        domain = (
+            url.split("//")[1]
+            .split(".")[0]
+        )
 
-    host = parsed_url.netloc
+        category = domain
 
-    if host.startswith("www.kompas.com"):
-        path_parts = parsed_url.path.split("/")
-
-        if len(path_parts) > 1:
-            category = path_parts[1]
-
-    else:
-        category = host.split(".")[0]
+    except:
+        pass
 
     return Article(
         title=title,
         url=url,
-        source="Kompas",
+        source="Okezone",
         category=category,
         published_date=published_date,
         content=content

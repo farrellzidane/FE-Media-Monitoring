@@ -4,6 +4,37 @@ import json
 from dataclasses import asdict
 
 
+def normalize_category(category):
+    if not category:
+        return "unknown"
+
+    category = category.lower()
+
+    mapping = {
+        "news": "berita",
+        "berita": "berita",
+
+        "economy": "ekonomi",
+        "market": "ekonomi",
+        "ekonomi": "ekonomi",
+
+        "bola": "olahraga",
+        "sport": "olahraga",
+        "olahraga": "olahraga",
+
+        "celebrity": "hiburan",
+        "hiburan": "hiburan",
+
+        "tech": "teknologi",
+        "teknologi": "teknologi"
+    }
+
+    return mapping.get(
+        category,
+        category
+    )
+
+
 def remove_duplicates(articles):
     unique_articles = []
     seen_urls = set()
@@ -30,10 +61,9 @@ def print_statistics(articles):
             ) + 1
         )
 
-        category = article.category
-
-        if not category:
-            category = "unknown"
+        category = normalize_category(
+            article.category
+        )
 
         category_counts[category] = (
             category_counts.get(
@@ -79,10 +109,18 @@ def save_articles(
     articles,
     file_path
 ):
-    article_data = [
-        asdict(article)
-        for article in articles
-    ]
+    article_data = []
+
+    for article in articles:
+        data = asdict(article)
+
+        data["category"] = (
+            normalize_category(
+                article.category
+            )
+        )
+
+        article_data.append(data)
 
     with open(
         file_path,
@@ -129,7 +167,9 @@ def save_articles_csv(
                 article.title,
                 article.url,
                 article.source,
-                article.category,
+                normalize_category(
+                    article.category
+                ),
                 article.published_date,
                 article.content
             ])

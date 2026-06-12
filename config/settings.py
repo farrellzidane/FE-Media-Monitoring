@@ -2,10 +2,18 @@ CNN_URL = "https://www.cnnindonesia.com"
 DETIK_URL = "https://news.detik.com"
 KOMPAS_URL = "https://www.kompas.com"
 TEMPO_URL = "https://www.tempo.co"
+TRIBUN_URL = "https://www.tribunnews.com"
+CNBC_URL = "https://www.cnbcindonesia.com"
+LIPUTAN6_URL = "https://www.liputan6.com"
+KUMPARAN_URL = "https://kumparan.com"
+OKEZONE_URL = "https://www.okezone.com"
+KUMPARAN_GRAPHQL_URL = (
+    "https://cdn-graphql-v4.kumparan.com/query"
+)
 
 MAX_ARTICLES = 5
 
-REQUEST_TIMEOUT = 10
+REQUEST_TIMEOUT = 20
 
 USER_AGENT = (
     "Mozilla/5.0 "

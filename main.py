@@ -18,6 +18,31 @@ from crawler.tempo import (
     get_latest_article_urls as get_tempo_urls
 )
 
+from crawler.tribun import (
+    get_article as get_tribun_article,
+    get_latest_article_urls as get_tribun_urls
+)
+
+from crawler.cnbc import (
+    get_article as get_cnbc_article,
+    get_latest_article_urls as get_cnbc_urls
+)
+
+from crawler.liputan6 import (
+    get_article as get_liputan6_article,
+    get_latest_article_urls as get_liputan6_urls
+)
+
+from crawler.okezone import (
+    get_article as get_okezone_article,
+    get_latest_article_urls as get_okezone_urls
+)
+
+from crawler.kumparan import (
+    get_article as get_kumparan_article,
+    get_latest_article_urls as get_kumparan_urls
+)
+
 from services.crawler_service import (
     crawl_articles
 )
@@ -29,12 +54,22 @@ from services.article_service import (
     remove_duplicates
 )
 
+from database.database import (
+    create_database,
+    clear_articles,
+    save_articles_to_database
+)
+
 from config.settings import (
     OUTPUT_FILE
 )
 
 
 def main():
+    create_database()
+
+    clear_articles()
+
     sources = [
         (
             "CNN",
@@ -55,6 +90,31 @@ def main():
             "Tempo",
             get_tempo_urls,
             get_tempo_article
+        ),
+        (
+            "Tribun",
+            get_tribun_urls,
+            get_tribun_article
+        ),
+        (
+            "CNBC",
+            get_cnbc_urls,
+            get_cnbc_article
+        ),
+        (
+            "Liputan6",
+            get_liputan6_urls,
+            get_liputan6_article
+        ),
+        (
+            "Okezone",
+            get_okezone_urls,
+            get_okezone_article
+        ),
+        (
+            "Kumparan",
+            get_kumparan_urls,
+            get_kumparan_article
         )
     ]
 
@@ -99,6 +159,10 @@ def main():
     save_articles_csv(
         articles,
         "data/articles.csv"
+    )
+
+    save_articles_to_database(
+        articles
     )
 
 
