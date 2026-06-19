@@ -135,6 +135,9 @@ def get_article(url):
         story["channel"]["slug"]
     )
 
+    if category == "bola-sports":
+        category = "olahraga"
+
     return Article(
         title=story["title"],
         url=(

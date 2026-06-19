@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+import json
 
 from models.article import Article
 
@@ -25,12 +26,11 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
         "html.parser"
     )
 
-    links = soup.find_all("a")
-
     urls = []
     processed_urls = set()
 
-    for link in links:
+    for link in soup.find_all("a"):
+
         href = link.get("href")
 
         if not href:
@@ -41,6 +41,8 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
 
         if "/202" not in href:
             continue
+
+        href = href.split("?")[0]
 
         if href in processed_urls:
             continue
@@ -71,18 +73,28 @@ def get_article(url):
     h1 = soup.find("h1")
 
     if h1:
-        title = h1.get_text(" ", strip=True)
+        title = h1.get_text(
+            " ",
+            strip=True
+        )
     else:
-        title = soup.title.text
-
-    paragraphs = soup.find_all("p")
+        title = soup.title.get_text(
+            strip=True
+        )
 
     content_list = []
 
-    for p in paragraphs:
-        text = p.get_text(" ", strip=True)
+    for p in soup.find_all("p"):
+
+        text = p.get_text(
+            " ",
+            strip=True
+        )
 
         if not text:
+            continue
+
+        if text == title:
             continue
 
         if text in [
@@ -96,26 +108,79 @@ def get_article(url):
 
         content_list.append(text)
 
-    content = "\n".join(content_list)
+    content = "\n".join(
+        content_list
+    )
 
     published_date = ""
 
-    parts = url.split("/")
+    meta_time = soup.find(
+        "meta",
+        attrs={
+            "property":
+            "article:published_time"
+        }
+    )
 
-    if len(parts) >= 5:
-        article_id = parts[4]
+    if meta_time:
 
-        if len(article_id) >= 8:
-            published_date = (
-                f"{article_id[0:4]}-"
-                f"{article_id[4:6]}-"
-                f"{article_id[6:8]}"
-            )
+        raw_date = meta_time.get(
+            "content",
+            ""
+        )
+
+        if raw_date:
+            published_date = raw_date[:10]
+
+    if not published_date:
+
+        for script in soup.find_all(
+            "script",
+            type="application/ld+json"
+        ):
+
+            try:
+                data = json.loads(
+                    script.string
+                )
+
+                if isinstance(data, dict):
+
+                    if "datePublished" in data:
+
+                        published_date = (
+                            data[
+                                "datePublished"
+                            ][:10]
+                        )
+
+                        break
+
+            except:
+                pass
+
+    if not published_date:
+
+        parts = url.split("/")
+
+        if len(parts) >= 5:
+
+            article_id = parts[4]
+
+            if len(article_id) >= 8:
+
+                published_date = (
+                    f"{article_id[0:4]}-"
+                    f"{article_id[4:6]}-"
+                    f"{article_id[6:8]}"
+                )
 
     category = ""
 
+    parts = url.split("/")
+
     if len(parts) > 3:
-        category = parts[3]
+        category = parts[3].lower()
 
     return Article(
         title=title,

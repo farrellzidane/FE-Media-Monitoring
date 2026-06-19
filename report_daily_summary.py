@@ -38,7 +38,26 @@ STOPWORDS = {
     "para",
     "saat",
     "agar",
-    "bisa"
+    "bisa",
+        "tim",
+    "hasil",
+    "vs",
+    "jadi",
+    "hingga",
+    "setelah",
+    "sebut",
+    "ungkap",
+    "bakal",
+    "capai",
+    "lewat",
+    "masih",
+    "sudah",
+    "minta",
+    "dalam",
+    "terkait",
+    "hingga",
+    "tahun",
+    "indonesia",
 }
 
 for article in articles:

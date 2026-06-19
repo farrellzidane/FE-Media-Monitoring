@@ -43,6 +43,11 @@ from crawler.kumparan import (
     get_latest_article_urls as get_kumparan_urls
 )
 
+from crawler.sindonews import (
+    get_article as get_sindonews_article,
+    get_latest_article_urls as get_sindonews_urls
+)
+
 from services.crawler_service import (
     crawl_articles
 )
@@ -66,6 +71,7 @@ from config.settings import (
 
 
 def main():
+
     create_database()
 
     clear_articles()
@@ -115,12 +121,18 @@ def main():
             "Kumparan",
             get_kumparan_urls,
             get_kumparan_article
+        ),
+        (
+            "Sindonews",
+            get_sindonews_urls,
+            get_sindonews_article
         )
     ]
 
     articles = []
 
     for source_name, get_urls, get_article in sources:
+
         source_articles = crawl_articles(
             get_urls,
             get_article,

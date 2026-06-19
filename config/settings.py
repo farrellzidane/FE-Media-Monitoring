@@ -7,11 +7,12 @@ CNBC_URL = "https://www.cnbcindonesia.com"
 LIPUTAN6_URL = "https://www.liputan6.com"
 KUMPARAN_URL = "https://kumparan.com"
 OKEZONE_URL = "https://www.okezone.com"
+SINDONEWS_URL = "https://www.sindonews.com"
 KUMPARAN_GRAPHQL_URL = (
     "https://cdn-graphql-v4.kumparan.com/query"
 )
 
-MAX_ARTICLES = 5
+MAX_ARTICLES = 30
 
 REQUEST_TIMEOUT = 20
 
