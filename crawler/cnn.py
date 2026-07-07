@@ -5,7 +5,7 @@ import json
 from models.article import Article
 
 from config.settings import (
-    CNN_URL,
+    CNN_URLS,
     MAX_ARTICLES,
     USER_AGENT,
     REQUEST_TIMEOUT
@@ -13,45 +13,49 @@ from config.settings import (
 
 
 def get_latest_article_urls(limit=MAX_ARTICLES):
-    response = requests.get(
-        CNN_URL,
-        headers={"User-Agent": USER_AGENT},
-        timeout=REQUEST_TIMEOUT
-    )
-
-    response.raise_for_status()
-
-    soup = BeautifulSoup(
-        response.text,
-        "html.parser"
-    )
-
     urls = []
     processed_urls = set()
 
-    for link in soup.find_all("a"):
+    for cnn_url in CNN_URLS:
+        try:
+            response = requests.get(
+                cnn_url,
+                headers={"User-Agent": USER_AGENT},
+                timeout=REQUEST_TIMEOUT
+            )
 
-        href = link.get("href")
+            response.raise_for_status()
 
-        if not href:
-            continue
+            soup = BeautifulSoup(
+                response.text,
+                "html.parser"
+            )
 
-        if not href.startswith(CNN_URL):
-            continue
+            for link in soup.find_all("a"):
+                href = link.get("href")
 
-        if "/202" not in href:
-            continue
+                if not href:
+                    continue
 
-        href = href.split("?")[0]
+                if not href.startswith("https://www.cnnindonesia.com"):
+                    continue
 
-        if href in processed_urls:
-            continue
+                if "/202" not in href:
+                    continue
 
-        processed_urls.add(href)
-        urls.append(href)
+                href = href.split("?")[0]
 
-        if len(urls) >= limit:
-            break
+                if href in processed_urls:
+                    continue
+
+                processed_urls.add(href)
+                urls.append(href)
+
+                if len(urls) >= limit:
+                    return urls
+
+        except Exception as e:
+            print(f"CNN ERROR ({cnn_url}): {e}")
 
     return urls
 
@@ -85,7 +89,6 @@ def get_article(url):
     content_list = []
 
     for p in soup.find_all("p"):
-
         text = p.get_text(
             " ",
             strip=True
@@ -108,67 +111,45 @@ def get_article(url):
 
         content_list.append(text)
 
-    content = "\n".join(
-        content_list
-    )
+    content = "\n".join(content_list)
 
     published_date = ""
 
     meta_time = soup.find(
         "meta",
         attrs={
-            "property":
-            "article:published_time"
+            "property": "article:published_time"
         }
     )
 
     if meta_time:
-
-        raw_date = meta_time.get(
-            "content",
-            ""
-        )
+        raw_date = meta_time.get("content", "")
 
         if raw_date:
             published_date = raw_date[:10]
 
     if not published_date:
-
         for script in soup.find_all(
             "script",
             type="application/ld+json"
         ):
-
             try:
-                data = json.loads(
-                    script.string
-                )
+                data = json.loads(script.string)
 
                 if isinstance(data, dict):
-
                     if "datePublished" in data:
-
-                        published_date = (
-                            data[
-                                "datePublished"
-                            ][:10]
-                        )
-
+                        published_date = data["datePublished"][:10]
                         break
-
             except:
                 pass
 
     if not published_date:
-
         parts = url.split("/")
 
         if len(parts) >= 5:
-
             article_id = parts[4]
 
             if len(article_id) >= 8:
-
                 published_date = (
                     f"{article_id[0:4]}-"
                     f"{article_id[4:6]}-"

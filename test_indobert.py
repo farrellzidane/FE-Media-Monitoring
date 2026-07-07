@@ -1,20 +1,16 @@
-from transformers import pipeline
+from services.sentiment_service import analyze_sentiment
 
-classifier = pipeline(
-    "sentiment-analysis",
-    model="cardiffnlp/twitter-xlm-roberta-base-sentiment"
-)
-
-texts = [
-    "Messi cetak rekor dan tim menang besar",
-    "IHSG melemah akibat konflik perang",
-    "Prabowo hadir di acara nasional"
+test_cases = [
+    "Pemerintah bahas kebijakan ekonomi baru",
+    "Jokowi bertemu investor asing di Jakarta",
+    "Bank Indonesia tahan suku bunga",
+    "Harga saham teknologi melemah tipis",
+    "Timnas unggul 1-0 di babak pertama",
+    "Demo mahasiswa berlangsung damai"
 ]
 
-results = classifier(texts)
 
-for text, result in zip(texts, results):
+for text in test_cases:
     print("=" * 50)
     print(text)
-    print("Label:", result["label"])
-    print("Score:", round(result["score"], 4))
+    print("Sentiment:", analyze_sentiment(text))

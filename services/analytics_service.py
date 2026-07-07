@@ -5,7 +5,8 @@ from database.database import (
 )
 
 from services.sentiment_service import (
-    analyze_sentiment
+    analyze_sentiment,
+    analyze_sentiment_detailed
 )
 
 from sklearn.feature_extraction.text import (
@@ -83,6 +84,27 @@ OBJECTIVE_WORDS = {
     "berdasarkan"
 }
 
+def get_articles_with_sentiment():
+
+    articles = get_all_articles()
+    enriched_articles = []
+
+    for article in articles:
+        title = article[0]
+
+        sentiment_data = analyze_sentiment_detailed(title)
+
+        enriched_articles.append({
+            "title": article[0],
+            "source": article[1],
+            "category": article[2],
+            "published_date": article[3],
+            "sentiment": sentiment_data["label"],
+            "confidence": sentiment_data["confidence"],
+            "scores": sentiment_data["scores"]
+        })
+
+    return enriched_articles
 
 def get_daily_volume():
 
@@ -266,16 +288,14 @@ def get_topic_discovery(n_clusters=10):
 
 def get_sentiment_by_source():
 
-    articles = get_all_articles()
+    articles = get_articles_with_sentiment()
 
     source_stats = {}
 
     for article in articles:
 
-        title = article[0]
-        source = article[1]
-
-        sentiment = analyze_sentiment(title)
+        source = article["source"]
+        sentiment = article["sentiment"]
 
         if source not in source_stats:
             source_stats[source] = {
@@ -342,19 +362,17 @@ def get_source_ranking():
 
 def get_sentiment_trend():
 
-    articles = get_all_articles()
+    articles = get_articles_with_sentiment()
 
     trend = {}
 
     for article in articles:
 
-        title = article[0]
-        published_date = article[3]
+        published_date = article["published_date"]
+        sentiment = article["sentiment"]
 
         if not published_date:
             continue
-
-        sentiment = analyze_sentiment(title)
 
         if published_date not in trend:
             trend[published_date] = {
@@ -376,16 +394,14 @@ def get_sentiment_trend():
 
 def get_sentiment_by_category():
 
-    articles = get_all_articles()
+    articles = get_articles_with_sentiment()
 
     category_stats = {}
 
     for article in articles:
 
-        title = article[0]
-        category = article[2]
-
-        sentiment = analyze_sentiment(title)
+        category = article["category"]
+        sentiment = article["sentiment"]
 
         if category not in category_stats:
             category_stats[category] = {
@@ -442,7 +458,7 @@ def get_media_framing_analysis():
 
 def get_source_authority_map():
 
-    articles = get_all_articles()
+    articles = get_articles_with_sentiment()
 
     source_data = {}
 
@@ -463,10 +479,8 @@ def get_source_authority_map():
 
     for article in articles:
 
-        title = article[0]
-        source = str(article[1]).lower()
-
-        sentiment = analyze_sentiment(title)
+        source = str(article["source"]).lower()
+        sentiment = article["sentiment"]
 
         if source not in source_data:
             source_data[source] = {
@@ -492,7 +506,6 @@ def get_source_authority_map():
     for source, stats in source_data.items():
 
         tier = TIER_MAP.get(source, 1)
-
         total = stats["volume"]
 
         score = (
@@ -501,10 +514,8 @@ def get_source_authority_map():
 
         if score > 0.05:
             sentiment = "Positive"
-
         elif score < -0.05:
             sentiment = "Negative"
-
         else:
             sentiment = "Neutral"
 
@@ -520,26 +531,38 @@ def get_source_authority_map():
 
 def get_latest_articles(limit=15):
 
-    articles = get_all_articles()
+    articles = get_articles_with_sentiment()
 
-    results = []
+    grouped = {}
 
     for article in articles:
 
-        title = article[0]
-        source = article[1]
-        category = article[2]
-        published_date = article[3]
+        source = article["source"]
 
-        sentiment = analyze_sentiment(title)
-
-        results.append({
-            "title": title,
+        item = {
+            "title": article["title"],
             "source": source,
-            "category": category,
-            "published_date": published_date,
-            "sentiment": sentiment
-        })
+            "category": article["category"],
+            "published_date": article["published_date"],
+            "sentiment": article["sentiment"],
+            "confidence": article["confidence"]
+        }
+
+        if source not in grouped:
+            grouped[source] = []
+
+        grouped[source].append(item)
+
+    results = []
+
+    for source_articles in grouped.values():
+
+        source_articles.sort(
+            key=lambda x: x["published_date"] or "",
+            reverse=True
+        )
+
+        results.extend(source_articles[:2])
 
     results.sort(
         key=lambda x: x["published_date"] or "",

@@ -5,57 +5,59 @@ from bs4 import BeautifulSoup
 from models.article import Article
 
 from config.settings import (
-    OKEZONE_URL,
+    OKEZONE_URLS,
     MAX_ARTICLES,
     DEFAULT_HEADERS,
     REQUEST_TIMEOUT
 )
 
 
-def get_latest_article_urls(
-    limit=MAX_ARTICLES
-):
-    response = requests.get(
-        OKEZONE_URL,
-        headers=DEFAULT_HEADERS,
-        timeout=REQUEST_TIMEOUT
-    )
-
-    response.raise_for_status()
-
-    soup = BeautifulSoup(
-        response.text,
-        "html.parser"
-    )
-
-    links = soup.find_all("a")
-
+def get_latest_article_urls(limit=MAX_ARTICLES):
     urls = []
     processed_urls = set()
 
-    for link in links:
-        href = link.get("href")
+    for base_url in OKEZONE_URLS:
 
-        if not href:
-            continue
+        try:
+            response = requests.get(
+                base_url,
+                headers=DEFAULT_HEADERS,
+                timeout=REQUEST_TIMEOUT
+            )
 
-        if ".okezone.com/read/" not in href:
-            continue
+            response.raise_for_status()
 
-        href = href.split("?")[0]
+            soup = BeautifulSoup(
+                response.text,
+                "html.parser"
+            )
 
-        if href in processed_urls:
-            continue
+            links = soup.find_all("a")
 
-        processed_urls.add(href)
+            for link in links:
+                href = link.get("href")
 
-        urls.append(href)
+                if not href:
+                    continue
 
-        if len(urls) >= limit:
-            break
+                if ".okezone.com/read/" not in href:
+                    continue
+
+                href = href.split("?")[0]
+
+                if href in processed_urls:
+                    continue
+
+                processed_urls.add(href)
+                urls.append(href)
+
+                if len(urls) >= limit:
+                    return urls
+
+        except Exception as e:
+            print(f"Okezone crawl error: {e}")
 
     return urls
-
 
 def get_article(url):
     response = requests.get(

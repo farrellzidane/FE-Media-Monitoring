@@ -6,74 +6,60 @@ from bs4 import BeautifulSoup
 from models.article import Article
 
 from config.settings import (
-    TRIBUN_URL,
+    TRIBUN_URLS,
     MAX_ARTICLES,
     DEFAULT_HEADERS,
     REQUEST_TIMEOUT
 )
 
 
-def get_latest_article_urls(
-    limit=MAX_ARTICLES
-):
-    response = requests.get(
-        TRIBUN_URL,
-        headers=DEFAULT_HEADERS,
-        timeout=REQUEST_TIMEOUT
-    )
-
-    response.raise_for_status()
-
-    soup = BeautifulSoup(
-        response.text,
-        "html.parser"
-    )
-
+def get_latest_article_urls(limit=MAX_ARTICLES):
     urls = []
     processed_urls = set()
 
-    for link in soup.find_all("a"):
+    for tribun_url in TRIBUN_URLS:
+        try:
+            response = requests.get(
+                tribun_url,
+                headers=DEFAULT_HEADERS,
+                timeout=REQUEST_TIMEOUT
+            )
 
-        href = link.get("href")
+            response.raise_for_status()
 
-        if not href:
-            continue
+            soup = BeautifulSoup(
+                response.text,
+                "html.parser"
+            )
 
-        if not href.startswith(
-            "https://www.tribunnews.com/"
-        ):
-            continue
+            for link in soup.find_all("a"):
+                href = link.get("href")
 
-        if "/topic/" in href:
-            continue
+                if not href:
+                    continue
 
-        if "/tag/" in href:
-            continue
+                if "tribunnews.com" not in href:
+                    continue
 
-        if "/images/" in href:
-            continue
+                if "/topic/" in href:
+                    continue
 
-        parts = href.split("/")
+                if "/tag/" in href:
+                    continue
 
-        if len(parts) < 6:
-            continue
+                href = href.split("?")[0]
 
-        article_id = parts[4]
+                if href in processed_urls:
+                    continue
 
-        if not article_id.isdigit():
-            continue
+                processed_urls.add(href)
+                urls.append(href)
 
-        href = href.split("?")[0]
+                if len(urls) >= limit:
+                    return urls
 
-        if href in processed_urls:
-            continue
-
-        processed_urls.add(href)
-
-        urls.append(href)
-
-        if len(urls) >= limit:
-            break
+        except Exception as e:
+            print(f"TRIBUN ERROR ({tribun_url}): {e}")
 
     return urls
 

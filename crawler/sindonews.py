@@ -2,6 +2,13 @@ from playwright.sync_api import (
     sync_playwright
 )
 
+from config.settings import (
+    REQUEST_TIMEOUT,
+    USER_AGENT,
+    MAX_ARTICLES,
+    SINDONEWS_URLS
+)
+
 import json
 import requests
 
@@ -16,57 +23,48 @@ from config.settings import (
 )
 
 
-def get_latest_article_urls(
-    limit=MAX_ARTICLES
-):
-    with sync_playwright() as p:
-
-        browser = p.chromium.launch(
-            headless=True
-        )
-
-        page = browser.new_page()
-
-        page.goto(
-            "https://www.sindonews.com",
-            wait_until="domcontentloaded",
-            timeout=30000
-        )
-
-        links = page.locator(
-            "a"
-        ).evaluate_all(
-            """
-            elements => elements
-                .map(e => e.href)
-                .filter(
-                    h =>
-                        h &&
-                        h.includes('/read/') &&
-                        h.includes('2026')
-                )
-            """
-        )
-
-        browser.close()
-
+def get_latest_article_urls(limit=MAX_ARTICLES):
     urls = []
     seen = set()
 
-    for link in links:
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
 
-        if link in seen:
-            continue
+        for source_url in SINDONEWS_URLS:
+            try:
+                page = browser.new_page()
 
-        seen.add(link)
+                page.goto(
+                    source_url,
+                    wait_until="domcontentloaded",
+                    timeout=30000
+                )
 
-        urls.append(link)
+                links = page.locator("a").evaluate_all("""
+                    elements => elements
+                        .map(e => e.href)
+                        .filter(h => h && h.includes('/read/'))
+                """)
 
-        if len(urls) >= limit:
-            break
+                page.close()
+
+                for link in links:
+                    if link in seen:
+                        continue
+
+                    seen.add(link)
+                    urls.append(link)
+
+                    if len(urls) >= limit:
+                        browser.close()
+                        return urls
+
+            except Exception as e:
+                print(f"Sindonews error: {e}")
+
+        browser.close()
 
     return urls
-
 
 def get_article(url):
 

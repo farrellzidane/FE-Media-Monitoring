@@ -2,7 +2,6 @@ import sqlite3
 
 DATABASE_FILE = "data/articles.db"
 
-
 def create_database():
     connection = sqlite3.connect(
         DATABASE_FILE
@@ -28,19 +27,21 @@ def create_database():
 
 
 def clear_articles():
-    connection = sqlite3.connect(
-        DATABASE_FILE
-    )
-
+    connection = sqlite3.connect(DATABASE_FILE)
     cursor = connection.cursor()
 
-    cursor.execute(
-        "DELETE FROM articles"
-    )
+    cursor.execute("SELECT COUNT(*) FROM articles")
+    before = cursor.fetchone()[0]
+    print(f"Before delete: {before}")
 
+    cursor.execute("DELETE FROM articles")
     connection.commit()
-    connection.close()
 
+    cursor.execute("SELECT COUNT(*) FROM articles")
+    after = cursor.fetchone()[0]
+    print(f"After delete: {after}")
+
+    connection.close()
 
 def save_articles_to_database(
     articles

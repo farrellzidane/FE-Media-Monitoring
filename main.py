@@ -61,13 +61,18 @@ from services.article_service import (
 
 from database.database import (
     create_database,
-    clear_articles,
-    save_articles_to_database
+    save_articles_to_database,
+    clear_articles
 )
 
 from config.settings import (
     OUTPUT_FILE
 )
+
+from datetime import datetime, timedelta
+
+#import os
+#print("DB PATH:", os.path.abspath("data/articles.db"))
 
 
 def main():
@@ -146,10 +151,36 @@ def main():
     articles = remove_duplicates(
         articles
     )
+    # =====================================================
+    # Keep only recent news
+    # =====================================================
+
+    today = datetime.today().date()
+    max_age = timedelta(days=30)
+
+    filtered_articles = []
+
+    for article in articles:
+
+        if not article.published_date:
+            continue
+
+        try:
+            published = datetime.strptime(
+                article.published_date,
+                "%Y-%m-%d"
+            ).date()
+
+            if today - published <= max_age:
+                filtered_articles.append(article)
+
+        except:
+            continue
+
+    articles = filtered_articles
 
     articles.sort(
-        key=lambda article:
-        article.published_date,
+        key=lambda article: article.published_date,
         reverse=True
     )
 

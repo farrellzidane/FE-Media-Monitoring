@@ -31,6 +31,7 @@ from services.analytics_service import (
     get_latest_articles
 )
 
+
 from services.data_quality_service import (
     get_data_quality_report
 )
@@ -42,34 +43,56 @@ st.set_page_config(
     layout="wide"
 )
 
+@st.cache_data
+def load_main_df():
+    connection = sqlite3.connect(DATABASE_FILE)
+
+    query = """
+    SELECT
+        title,
+        source,
+        category,
+        published_date,
+        crawl_date,
+        url
+    FROM articles
+    ORDER BY published_date DESC
+    """
+
+    df = pd.read_sql_query(query, connection)
+
+    connection.close()
+
+    print("=" * 50)
+    print("ROWS:", len(df))
+    print(df["published_date"].min())
+    print(df["published_date"].max())
+    print(df.head())
+    print("=" * 50)
+
+    return df
+
+@st.cache_data(ttl=600)
+def load_cached_analytics():
+    return {
+        "quality": get_data_quality_report(),
+        "daily_volume": get_daily_volume(),
+        "trend": get_sentiment_trend(),
+        "category_sentiment": get_sentiment_by_category(),
+        "framing": get_media_framing_analysis(),
+        "authority": get_source_authority_map(),
+        "ranking": get_source_ranking(),
+        "source_sentiment": get_sentiment_by_source(),
+        "keywords": get_top_keywords(15),
+        "latest_articles": get_latest_articles(15)
+    }
 
 
 # ======================================
 # LOAD DATA
 # ======================================
-
-connection = sqlite3.connect(
-    DATABASE_FILE
-)
-
-query = """
-SELECT
-    title,
-    source,
-    category,
-    published_date,
-    crawl_date,
-    url
-FROM articles
-ORDER BY published_date DESC
-"""
-
-df = pd.read_sql_query(
-    query,
-    connection
-)
-
-connection.close()
+df = load_main_df()
+analytics = load_cached_analytics()
 
 # ======================================
 # HEADER
@@ -443,6 +466,7 @@ if not framing_df.empty:
 st.subheader("🫧 Source Authority Map")
 
 authority_data = get_source_authority_map()
+
 authority_df = pd.DataFrame(authority_data)
 
 if not authority_df.empty:
