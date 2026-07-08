@@ -15,6 +15,8 @@ from sklearn.feature_extraction.text import (
 
 from sklearn.cluster import KMeans
 
+from datetime import datetime, timedelta
+
 
 STOPWORDS = {
     "dan",
@@ -106,10 +108,13 @@ def get_articles_with_sentiment():
 
     return enriched_articles
 
-def get_daily_volume():
+def get_daily_volume(days=30):
 
     articles = get_all_articles()
     counter = Counter()
+
+    today = datetime.today().date()
+    start_date = today - timedelta(days=days - 1)
 
     for article in articles:
         date = article[3]
@@ -117,9 +122,35 @@ def get_daily_volume():
         if not date:
             continue
 
-        counter[date] += 1
+        try:
+            article_date = datetime.strptime(
+                date,
+                "%Y-%m-%d"
+            ).date()
 
-    return dict(sorted(counter.items()))
+        except:
+            continue
+
+        if article_date < start_date:
+            continue
+
+        counter[date] += 1
+    
+    current = start_date
+
+    while current <= today:
+        key = current.strftime(
+            "%Y-%m-%d"
+        )
+
+        if key not in counter:
+            counter[key] = 0
+        
+        current += timedelta(days=1)
+
+    return dict(
+        sorted(counter.items())
+    )
 
 
 def get_source_statistics():

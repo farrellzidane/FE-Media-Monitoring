@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import json
 import requests
 
@@ -14,6 +15,10 @@ from config.settings import (
 
 
 def get_latest_article_urls(limit=MAX_ARTICLES):
+
+    today = datetime.today().date()
+    min_date = today - timedelta(days=30)
+
     response = requests.get(
         TEMPO_URL,
         headers=DEFAULT_HEADERS,
@@ -27,12 +32,11 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
         "html.parser"
     )
 
-    links = soup.find_all("a")
-
     urls = []
     processed_urls = set()
 
-    for link in links:
+    for link in soup.find_all("a"):
+
         href = link.get("href")
 
         if not href:
@@ -62,9 +66,30 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
         if "/plus" in href:
             continue
 
-        full_url = TEMPO_URL + href
+        full_url = TEMPO_URL + href.split("?")[0]
 
         if full_url in processed_urls:
+            continue
+
+        article = get_article(full_url)
+
+        if not article:
+            continue
+
+        if not article.published_date:
+            continue
+
+        try:
+
+            article_date = datetime.strptime(
+                article.published_date,
+                "%Y-%m-%d"
+            ).date()
+
+        except:
+            continue
+
+        if article_date < min_date:
             continue
 
         processed_urls.add(full_url)
@@ -77,6 +102,7 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
 
 
 def get_article(url):
+
     response = requests.get(
         url,
         headers=DEFAULT_HEADERS,
@@ -92,17 +118,22 @@ def get_article(url):
 
     script = soup.find(
         "script",
-        attrs={"type": "application/ld+json"}
+        attrs={
+            "type": "application/ld+json"
+        }
     )
 
     if not script:
-        raise Exception(
-            f"Schema JSON not found: {url}"
+        return None
+
+    try:
+
+        data = json.loads(
+            script.string
         )
 
-    data = json.loads(
-        script.string
-    )
+    except:
+        return None
 
     title = data.get(
         "headline",
@@ -120,11 +151,11 @@ def get_article(url):
     )
 
     if published_date:
-        published_date = (
-            published_date.split("T")[0]
-        )
 
-    category = ""
+        published_date = (
+            published_date
+            .split("T")[0]
+        )
 
     parts = (
         url.replace(
@@ -135,7 +166,9 @@ def get_article(url):
     )
 
     if len(parts) > 0:
-        category = parts[0]
+        category = parts[0].lower()
+    else:
+        category = "unknown"
 
     return Article(
         title=title,

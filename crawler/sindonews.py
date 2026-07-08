@@ -1,16 +1,10 @@
+from datetime import datetime, timedelta
+import json
+import requests
+
 from playwright.sync_api import (
     sync_playwright
 )
-
-from config.settings import (
-    REQUEST_TIMEOUT,
-    USER_AGENT,
-    MAX_ARTICLES,
-    SINDONEWS_URLS
-)
-
-import json
-import requests
 
 from bs4 import BeautifulSoup
 
@@ -19,19 +13,29 @@ from models.article import Article
 from config.settings import (
     REQUEST_TIMEOUT,
     USER_AGENT,
-    MAX_ARTICLES
+    MAX_ARTICLES,
+    SINDONEWS_URLS
 )
 
 
 def get_latest_article_urls(limit=MAX_ARTICLES):
+
+    today = datetime.today().date()
+    min_date = today - timedelta(days=30)
+
     urls = []
     seen = set()
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+
+        browser = p.chromium.launch(
+            headless=True
+        )
 
         for source_url in SINDONEWS_URLS:
+
             try:
+
                 page = browser.new_page()
 
                 page.goto(
@@ -40,7 +44,9 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
                     timeout=30000
                 )
 
-                links = page.locator("a").evaluate_all("""
+                links = page.locator(
+                    "a"
+                ).evaluate_all("""
                     elements => elements
                         .map(e => e.href)
                         .filter(h => h && h.includes('/read/'))
@@ -49,7 +55,31 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
                 page.close()
 
                 for link in links:
+
                     if link in seen:
+                        continue
+
+                    article = get_article(
+                        link
+                    )
+
+                    if not article:
+                        continue
+
+                    if not article.published_date:
+                        continue
+
+                    try:
+
+                        article_date = datetime.strptime(
+                            article.published_date,
+                            "%Y-%m-%d"
+                        ).date()
+
+                    except:
+                        continue
+
+                    if article_date < min_date:
                         continue
 
                     seen.add(link)
@@ -60,11 +90,15 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
                         return urls
 
             except Exception as e:
-                print(f"Sindonews error: {e}")
+
+                print(
+                    f"Sindonews error: {e}"
+                )
 
         browser.close()
 
     return urls
+
 
 def get_article(url):
 
@@ -83,23 +117,16 @@ def get_article(url):
         "html.parser"
     )
 
-    # ==========================
-    # TITLE
-    # ==========================
-
     title = ""
 
     h1 = soup.find("h1")
 
     if h1:
+
         title = h1.get_text(
             " ",
             strip=True
         )
-
-    # ==========================
-    # CONTENT
-    # ==========================
 
     content = ""
 
@@ -125,9 +152,7 @@ def get_article(url):
 
         lines = []
 
-        for line in raw_content.split(
-            "\n"
-        ):
+        for line in raw_content.split("\n"):
 
             line = line.strip()
 
@@ -154,10 +179,6 @@ def get_article(url):
             lines
         )
 
-    # ==========================
-    # CATEGORY
-    # ==========================
-
     category = "unknown"
 
     try:
@@ -172,16 +193,13 @@ def get_article(url):
     except:
         pass
 
-    # ==========================
-    # DATE
-    # ==========================
-
     published_date = ""
 
     for script in soup.find_all(
         "script",
         type="application/ld+json"
     ):
+
         try:
 
             data = json.loads(
@@ -189,25 +207,18 @@ def get_article(url):
             )
 
             if (
-                isinstance(
-                    data,
-                    dict
-                )
+                isinstance(data, dict)
                 and "datePublished" in data
             ):
+
                 published_date = (
-                    data[
-                        "datePublished"
-                    ][:10]
+                    data["datePublished"][:10]
                 )
+
                 break
 
         except:
             continue
-
-    # ==========================
-    # DEBUG
-    # ==========================
 
     if not published_date:
 

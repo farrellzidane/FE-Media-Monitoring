@@ -1,4 +1,7 @@
 import sqlite3
+from services.article_service import (
+    normalize_category
+)
 
 DATABASE_FILE = "data/articles.db"
 
@@ -70,7 +73,9 @@ def save_articles_to_database(
                 article.title,
                 article.url,
                 article.source,
-                article.category,
+                normalize_category(
+                    article.category
+                ),
                 article.published_date,
                 article.crawl_date,
                 article.content

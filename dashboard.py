@@ -278,16 +278,29 @@ st.subheader(
     "📊 Category Distribution"
 )
 
+important_categories = [
+    "General",
+    "Business",
+    "Sports",
+    "International",
+    "Regional",
+    "Entertainment",
+    "Science",
+    "Law"
+]
+
 category_counts = (
     df["category"]
     .value_counts()
 )
 
-st.bar_chart(
-    category_counts
-)
+category_counts = category_counts[
+    category_counts.index.isin(
+        important_categories
+    )
+]
 
-st.divider()
+st.bar_chart(category_counts)
 
 # ======================================
 # CATEGORY SENTIMENT BREAKDOWN
@@ -309,7 +322,24 @@ for category, stats in category_sentiment.items():
 
 category_df = pd.DataFrame(category_rows)
 
-st.dataframe(category_df, use_container_width=True)
+category_df["Total"] = (
+    category_df["Positive"]
+    + category_df["Negative"]
+    + category_df["Neutral"]
+)
+
+category_df = category_df[
+    category_df["Total"] >= 5
+]
+
+category_df = category_df.drop(
+    columns="Total"
+)
+
+st.dataframe(
+    category_df,
+    use_container_width=True
+)
 
 chart_df = category_df.set_index("Category")
 
@@ -330,25 +360,24 @@ categories = sorted(
 filtered_categories = []
 
 for category, stats in categories:
+
     total = (
         stats["positive"]
         + stats["negative"]
         + stats["neutral"]
     )
 
-    if total == 0:
+    if total < 5:
         continue
 
     negative_pct = (
         stats["negative"] / total * 100
     )
 
-    # Normal category → minimum 5 articles
-    if total >= 5:
+    if total >= 10:
         filtered_categories.append((category, stats))
 
-    # High risk category → minimum 3 articles + negative >= 70%
-    elif total >= 3 and negative_pct >= 70:
+    elif total >= 5 and negative_pct >= 70:
         filtered_categories.append((category, stats))
 
 for i in range(0, len(filtered_categories), 3):
@@ -369,18 +398,22 @@ for i in range(0, len(filtered_categories), 3):
         )
 
         positive_pct = round(
-            stats["positive"] / total * 100, 1
+            stats["positive"] / total * 100,
+            1
         )
 
         negative_pct = round(
-            stats["negative"] / total * 100, 1
+            stats["negative"] / total * 100,
+            1
         )
 
         neutral_pct = round(
-            stats["neutral"] / total * 100, 1
+            stats["neutral"] / total * 100,
+            1
         )
 
         with cols[j]:
+
             with st.container(border=True):
 
                 st.markdown(
@@ -401,64 +434,12 @@ for i in range(0, len(filtered_categories), 3):
 
                 if negative_pct >= 50:
                     st.error("High Negative")
+
                 elif positive_pct >= 60:
                     st.success("High Positive")
+
                 else:
                     st.info("Mostly Neutral")
-
-
-# ======================================
-# MEDIA FRAMING DETECTOR
-# ======================================
-
-st.subheader("🛡 Media Framing Detector")
-
-framing_data = get_media_framing_analysis()
-
-framing_rows = []
-
-for category, stats in framing_data.items():
-
-    total = stats["negative"] + stats["objective"]
-
-    if total < 3:
-        continue
-
-    framing_rows.append({
-        "Category": category,
-        "Negative Framing": stats["negative"],
-        "Objective Reporting": stats["objective"]
-    })
-
-framing_df = pd.DataFrame(framing_rows)
-
-framing_df = framing_df.sort_values(
-    by="Negative Framing",
-    ascending=False
-)
-
-if not framing_df.empty:
-
-    fig = px.bar(
-        framing_df,
-        x="Category",
-        y=["Negative Framing", "Objective Reporting"],
-        barmode="group",
-        title="Media Framing Analysis"
-    )
-
-    fig.update_layout(
-        template="plotly_dark",
-        height=500,
-        xaxis_title="Category",
-        yaxis_title="Number of Articles"
-    )
-
-    fig.data[0].marker.color = "#ff4b4b"
-    fig.data[1].marker.color = "#00cc96"
-
-    st.plotly_chart(fig, use_container_width=True)
-
 #==============
 # Source Authority Map
 #==============
@@ -742,15 +723,23 @@ with col2:
 
 with col3:
 
-    category_filter = st.selectbox(
-        "Category",
-        ["All"]
-        + sorted(
-            df["category"]
-            .unique()
-            .tolist()
-        )
-    )
+    valid_categories = (
+    df["category"]
+    .value_counts()
+)
+
+valid_categories = (
+    valid_categories[
+        valid_categories >= 5
+    ]
+    .index
+    .tolist()
+)
+
+category_filter = st.selectbox(
+    "Category",
+    ["All"] + sorted(valid_categories)
+)
 
 keyword = st.text_input(
     "Search Keyword"

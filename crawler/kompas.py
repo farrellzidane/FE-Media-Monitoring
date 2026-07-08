@@ -1,7 +1,8 @@
-import requests
 import json
+import requests
 
 from urllib.parse import urlparse
+from datetime import datetime, timedelta
 
 from bs4 import BeautifulSoup
 
@@ -32,6 +33,9 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
         "html.parser"
     )
 
+    today = datetime.today().date()
+    min_date = today - timedelta(days=30)
+
     urls = []
     processed_urls = set()
 
@@ -53,11 +57,34 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
 
         href = href.split("?")[0]
 
+        parts = href.split("/")
+
+        if "read" not in parts:
+            continue
+
+        idx = parts.index("read")
+
+        if len(parts) <= idx + 3:
+            continue
+
+        try:
+
+            article_date = datetime(
+                int(parts[idx + 1]),
+                int(parts[idx + 2]),
+                int(parts[idx + 3])
+            ).date()
+
+        except:
+            continue
+
+        if article_date < min_date:
+            continue
+
         if href in processed_urls:
             continue
 
         processed_urls.add(href)
-
         urls.append(href)
 
         if len(urls) >= limit:
@@ -86,14 +113,11 @@ def get_article(url):
     h1 = soup.find("h1")
 
     if h1:
-
         title = h1.get_text(
             " ",
             strip=True
         )
-
     else:
-
         title = soup.title.get_text(
             strip=True
         )
@@ -116,51 +140,34 @@ def get_article(url):
         if text == "Tim Redaksi":
             continue
 
-        if text.startswith(
-            "Baca juga:"
-        ):
+        if text.startswith("Baca juga:"):
             continue
 
-        if text.startswith(
-            "Lihat Foto"
-        ):
+        if text.startswith("Lihat Foto"):
             continue
 
-        if text.startswith(
-            "Kompas.com+"
-        ):
+        if text.startswith("Kompas.com+"):
             continue
 
         if "Copyright 2008" in text:
             continue
 
-        if (
-            "Dapatkan lebih banyak kuota"
-            in text
-        ):
+        if "Dapatkan lebih banyak kuota" in text:
             continue
 
-        if (
-            "artikel KOMPAS.com"
-            in text
-        ):
+        if "artikel KOMPAS.com" in text:
             continue
 
-        content_list.append(
-            text
-        )
+        content_list.append(text)
 
-    content = "\n".join(
-        content_list
-    )
+    content = "\n".join(content_list)
 
     published_date = ""
 
     meta_time = soup.find(
         "meta",
         attrs={
-            "property":
-            "article:published_time"
+            "property": "article:published_time"
         }
     )
 
@@ -188,24 +195,18 @@ def get_article(url):
                 )
 
                 if (
-                    isinstance(
-                        data,
-                        dict
-                    )
-                    and
-                    "datePublished" in data
+                    isinstance(data, dict)
+                    and "datePublished" in data
                 ):
 
                     published_date = (
-                        data[
-                            "datePublished"
-                        ][:10]
+                        data["datePublished"][:10]
                     )
 
                     break
 
             except:
-                pass
+                continue
 
     if not published_date:
 
@@ -213,64 +214,38 @@ def get_article(url):
 
         if "read" in parts:
 
-            read_index = (
-                parts.index("read")
-            )
+            idx = parts.index("read")
 
-            if (
-                len(parts)
-                > read_index + 3
-            ):
+            if len(parts) > idx + 3:
 
                 published_date = (
-                    f"{parts[read_index + 1]}-"
-                    f"{parts[read_index + 2]}-"
-                    f"{parts[read_index + 3]}"
+                    f"{parts[idx + 1]}-"
+                    f"{parts[idx + 2]}-"
+                    f"{parts[idx + 3]}"
                 )
 
-    category = ""
+    parsed = urlparse(url)
 
-    parsed_url = urlparse(
-        url
-    )
+    if parsed.netloc.startswith("www.kompas.com"):
 
-    host = parsed_url.netloc
-
-    if host.startswith(
-        "www.kompas.com"
-    ):
-
-        path_parts = (
-            parsed_url.path
-            .split("/")
-        )
+        path_parts = parsed.path.split("/")
 
         if len(path_parts) > 1:
-
-            category = (
-                path_parts[1]
-                .lower()
-            )
+            category = path_parts[1].lower()
+        else:
+            category = "unknown"
 
     else:
 
-        category = (
-            host
-            .split(".")[0]
-            .lower()
-        )
-
-    # =====================
-    # NORMALIZATION
-    # =====================
+        category = parsed.netloc.split(".")[0].lower()
 
     if category == "edu":
         category = "edukasi"
 
-    if category == "bola":
+    elif category == "bola":
         category = "olahraga"
 
-    if category == "bola-sports":
+    elif category == "bola-sports":
         category = "olahraga"
 
     return Article(

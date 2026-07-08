@@ -1,6 +1,9 @@
-import requests
 import json
 
+from datetime import datetime, timedelta
+from urllib.parse import urlparse
+
+import requests
 from bs4 import BeautifulSoup
 
 from models.article import Article
@@ -14,11 +17,22 @@ from config.settings import (
 
 
 def get_latest_article_urls(limit=MAX_ARTICLES):
+
+    today = datetime.today().date()
+    min_date = today - timedelta(days=30)
+
+    allowed_hosts = {
+        urlparse(url).netloc.lower()
+        for url in TRIBUN_URLS
+    }
+
     urls = []
     processed_urls = set()
 
     for tribun_url in TRIBUN_URLS:
+
         try:
+
             response = requests.get(
                 tribun_url,
                 headers=DEFAULT_HEADERS,
@@ -33,12 +47,24 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
             )
 
             for link in soup.find_all("a"):
+
                 href = link.get("href")
 
                 if not href:
                     continue
 
-                if "tribunnews.com" not in href:
+                if not href.startswith("https://"):
+                    continue
+
+                href = href.split("?")[0]
+
+                host = (
+                    urlparse(href)
+                    .netloc
+                    .lower()
+                )
+
+                if host not in allowed_hosts:
                     continue
 
                 if "/topic/" in href:
@@ -47,9 +73,39 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
                 if "/tag/" in href:
                     continue
 
-                href = href.split("?")[0]
+                if "/images/" in href:
+                    continue
+
+                if "/video/" in href:
+                    continue
 
                 if href in processed_urls:
+                    continue
+
+                try:
+
+                    article = get_article(href)
+
+                except Exception:
+                    continue
+
+                if not article:
+                    continue
+
+                if not article.published_date:
+                    continue
+
+                try:
+
+                    article_date = datetime.strptime(
+                        article.published_date,
+                        "%Y-%m-%d"
+                    ).date()
+
+                except:
+                    continue
+
+                if article_date < min_date:
                     continue
 
                 processed_urls.add(href)
@@ -59,7 +115,10 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
                     return urls
 
         except Exception as e:
-            print(f"TRIBUN ERROR ({tribun_url}): {e}")
+
+            print(
+                f"TRIBUN ERROR ({tribun_url}): {e}"
+            )
 
     return urls
 
@@ -79,15 +138,15 @@ def get_article(url):
         "html.parser"
     )
 
-    title = ""
-
     h1 = soup.find("h1")
 
-    if h1:
-        title = h1.get_text(
-            " ",
-            strip=True
-        )
+    if not h1:
+        return None
+
+    title = h1.get_text(
+        " ",
+        strip=True
+    )
 
     content_list = []
 
@@ -113,17 +172,11 @@ def get_article(url):
         if text.startswith("TRIBUNNEWS.COM"):
             continue
 
-        content_list.append(
-            text
-        )
+        content_list.append(text)
 
     content = "\n".join(
         content_list
     )
-
-    # ==================================
-    # DATE
-    # ==================================
 
     published_date = ""
 
@@ -131,6 +184,7 @@ def get_article(url):
         "script",
         type="application/ld+json"
     ):
+
         try:
 
             raw_json = script.get_text(
@@ -144,17 +198,17 @@ def get_article(url):
                 raw_json
             )
 
-            # FORMAT 1
             if (
                 isinstance(data, dict)
                 and "datePublished" in data
             ):
+
                 published_date = (
                     data["datePublished"][:10]
                 )
+
                 break
 
-            # FORMAT 2 (Tribun sekarang)
             if (
                 isinstance(data, dict)
                 and "@graph" in data
@@ -166,19 +220,17 @@ def get_article(url):
                         isinstance(item, dict)
                         and "datePublished" in item
                     ):
+
                         published_date = (
                             item["datePublished"][:10]
                         )
+
                         break
 
                 if published_date:
                     break
 
-            # FORMAT 3
-            if isinstance(
-                data,
-                list
-            ):
+            if isinstance(data, list):
 
                 for item in data:
 
@@ -186,9 +238,11 @@ def get_article(url):
                         isinstance(item, dict)
                         and "datePublished" in item
                     ):
+
                         published_date = (
                             item["datePublished"][:10]
                         )
+
                         break
 
                 if published_date:
@@ -197,16 +251,19 @@ def get_article(url):
         except:
             continue
 
-    category = "unknown"
-
     parts = url.split("/")
 
     if len(parts) > 3:
+
         category = (
             parts[3]
             .lower()
             .strip()
         )
+
+    else:
+
+        category = "unknown"
 
     return Article(
         title=title,

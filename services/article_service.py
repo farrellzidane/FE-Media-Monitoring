@@ -5,79 +5,172 @@ from dataclasses import asdict
 
 
 def normalize_category(category):
+
     if not category:
-        return "unknown"
+        return "Unknown"
 
     category = category.lower().strip()
 
     mapping = {
+        
+        "news": "General",
+        "berita": "General",
+        "nasional": "General",
+        "peristiwa": "General",
+        "metropolitan": "General",
+        "megapolitan": "General",
+        "politik": "General",
+        "arsip": "General",
+        "adv": "General",
+        "advertorial": "General",
+        "epaper": "General",
+        "photo": "General",
+        "foto-news": "General",
+        "foto-bisnis": "General",
+        "video": "General",
+        "kolom": "General",
+        "tokoh": "General",
+        "wawancara": "General",
+        "prelude": "General",
+        "adikarya-parlemen": "General",
 
-        # ========= BERITA =========
-        "news": "berita",
-        "berita": "berita",
-        "nasional": "berita",
-        "peristiwa": "berita",
-        "metropolitan": "berita",
-        "megapolitan": "berita",
+        "economy": "Business",
+        "market": "Business",
+        "ekonomi": "Business",
+        "ekbis": "Business",
+        "money": "Business",
+        "bisnis": "Business",
+        "business": "Business",
+        "consumer": "Business",
+        "crypto": "Business",
+        "saham": "Business",
+        "energi": "Business",
+        "moneter": "Business",
+        "industri": "Business",
+        "properti": "Business",
+        "berita-ekonomi-bisnis": "Business",
+        "ekonomi-hijau": "Business",
+        "bursa-dan-valas": "Business",
+        "finance": "Business",
+        "fintech": "Business",
+        "entrepreneur": "Business",
+        "infrastruktur": "Business",
 
-        # ========= EKONOMI =========
-        "economy": "ekonomi",
-        "market": "ekonomi",
-        "ekonomi": "ekonomi",
-        "ekbis": "ekonomi",
-        "money": "ekonomi",
-        "bisnis": "ekonomi",
+        "sport": "Sports",
+        "sports": "Sports",
+        "sportstars": "Sports",
+        "olahraga": "Sports",
+        "bola": "Sports",
+        "sepakbola": "Sports",
+        "superskor": "Sports",
+        "superball": "Sports",
+        "sport-lain": "Sports",
+        "sportstyle": "Sports",
+        "raket": "Sports",
+        "moto-gp": "Sports",
+        "olympic": "Sports",
+        "piala-dunia": "Sports",
+        "basket": "Sports",
+        "bola-jatim": "Sports",
 
-        # ========= OLAHRAGA =========
-        "sport": "olahraga",
-        "sports": "olahraga",
-        "sportstars": "olahraga",
-        "olahraga": "olahraga",
-        "bola": "olahraga",
-        "sepakbola": "olahraga",
-        "superskor": "olahraga",
+        "international": "International",
+        "internasional": "International",
+        "global": "International",
 
-        # ========= INTERNASIONAL =========
-        "international": "internasional",
-        "internasional": "internasional",
-        "global": "internasional",
+        "celebrity": "Entertainment",
+        "showbiz": "Entertainment",
+        "entertainment": "Entertainment",
+        "hiburan": "Entertainment",
+        "lifestyle": "Entertainment",
+        "gaya-hidup": "Entertainment",
+        "travel": "Entertainment",
+        "food-travel": "Entertainment",
+        "food": "Entertainment",
+        "woman": "Entertainment",
+        "mom": "Entertainment",
+        "musik": "Entertainment",
+        "seleb": "Entertainment",
+        "persona": "Entertainment",
+        "hype": "Entertainment",
+        "ibu-dan-anak": "Entertainment",
+        "tvscope": "Entertainment",
+        "tren": "Entertainment",
+        "teroka": "Entertainment",
 
-        # ========= HIBURAN =========
-        "celebrity": "hiburan",
-        "showbiz": "hiburan",
-        "entertainment": "hiburan",
-        "hiburan": "hiburan",
-        "lifestyle": "hiburan",
+        "tech": "Science",
+        "tekno": "Science",
+        "teknologi": "Science",
+        "science": "Science",
+        "tekno-sains": "Science",
+        "cyberlife": "Science",
+        "digital": "Science",
+        "security": "Science",
+        "review-produk": "Science",
+        "fotoinet": "Science",
+        "techno": "Science",
+        "ototekno": "Science",
+        "telco": "Science",
+        "tips-dan-trik": "Science",
+        "laptop-dan-pc": "Science",
+        "info-sehat": "Science",
+        "lingkungan": "Science",
+        "sains": "Science",
+        "research": "Science",
 
-        # ========= TEKNOLOGI =========
-        "tech": "sains",
-        "tekno": "sains",
-        "teknologi": "sains",
+        "crime": "Law",
+        "hukum": "Law",
+        "kemenkumham": "Law",
 
-        # ========= HUKUM =========
-        "crime": "hukum",
-        "hukum": "hukum",
+        "regional": "Regional",
+        "daerah": "Regional",
 
-        # ========= REGIONAL =========
-        "regional": "regional",
-        "daerah": "regional",
-        "bandung": "regional",
-        "surabaya": "regional",
-        "denpasar": "regional",
+        "bandung": "Regional",
+        "metro-bandung": "Regional",
+        "kabupaten-bandung": "Regional",
+        "jabar-region": "Regional",
+        "jabar-istimewa": "Regional",
+        "ciamis": "Regional",
+        "garut": "Regional",
+        "cirebon": "Regional",
+        "sumedang": "Regional",
+        "tasik": "Regional",
+        "banyuwangi": "Regional",
 
-        # ========= CEK FAKTA =========
-        "cek-fakta": "cek-fakta",
-        "cekfakta": "cek-fakta",
+        "jatim": "Regional",
+        "bojonegoro": "Regional",
+        "blitar": "Regional",
+        "kediri": "Regional",
+        "jombang": "Regional",
+        "madura": "Regional",
+        "malang": "Regional",
+        "mojokerto": "Regional",
+        "probolinggo": "Regional",
+        "surabaya": "Regional",
+        "pasuruan": "Regional",
+        "nganjuk": "Regional",
+        "trenggalek": "Regional",
 
-        # ========= SAINS =========
-        "sains": "sains",
-        "research": "sains",
+        "medan": "Regional",
+        "medan-terkini": "Regional",
+        "sumut-terkini": "Regional",
+        "deliserdang": "Regional",
+        "langkat": "Regional",
+        "binjai": "Regional",
+        "siantar": "Regional",
+        "tribun-medan-wiki": "Regional",
+
+        "makassar": "Regional",
+
+        "yogyakarta": "Regional",
+        "denpasar": "Regional",
+        "tapsel": "Regional",
+        "tapteng": "Regional",
+
+        "cek-fakta": "Fact Check",
+        "cekfakta": "Fact Check"
     }
 
-    return mapping.get(
-        category,
-        category
-    )
+    return mapping.get(category, category.title())
 
 
 def remove_duplicates(articles):

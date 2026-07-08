@@ -1,5 +1,6 @@
-import requests
+from datetime import datetime, timedelta
 
+import requests
 from bs4 import BeautifulSoup
 
 from models.article import Article
@@ -13,12 +14,17 @@ from config.settings import (
 
 
 def get_latest_article_urls(limit=MAX_ARTICLES):
+
+    today = datetime.today().date()
+    min_date = today - timedelta(days=30)
+
     urls = []
     processed_urls = set()
 
     for base_url in OKEZONE_URLS:
 
         try:
+
             response = requests.get(
                 base_url,
                 headers=DEFAULT_HEADERS,
@@ -32,9 +38,8 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
                 "html.parser"
             )
 
-            links = soup.find_all("a")
+            for link in soup.find_all("a"):
 
-            for link in links:
                 href = link.get("href")
 
                 if not href:
@@ -44,6 +49,30 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
                     continue
 
                 href = href.split("?")[0]
+
+                parts = href.split("/")
+
+                if "read" not in parts:
+                    continue
+
+                idx = parts.index("read")
+
+                if len(parts) <= idx + 3:
+                    continue
+
+                try:
+
+                    article_date = datetime(
+                        int(parts[idx + 1]),
+                        int(parts[idx + 2]),
+                        int(parts[idx + 3])
+                    ).date()
+
+                except:
+                    continue
+
+                if article_date < min_date:
+                    continue
 
                 if href in processed_urls:
                     continue
@@ -55,11 +84,14 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
                     return urls
 
         except Exception as e:
+
             print(f"Okezone crawl error: {e}")
 
     return urls
 
+
 def get_article(url):
+
     response = requests.get(
         url,
         headers=DEFAULT_HEADERS,
@@ -81,13 +113,12 @@ def get_article(url):
             strip=True
         )
     else:
-        title = soup.title.text
-
-    paragraphs = soup.find_all("p")
+        title = soup.title.get_text(strip=True)
 
     content_list = []
 
-    for p in paragraphs:
+    for p in soup.find_all("p"):
+
         text = p.get_text(
             " ",
             strip=True
@@ -101,36 +132,35 @@ def get_article(url):
 
         content_list.append(text)
 
-    content = "\n".join(
-        content_list
-    )
+    content = "\n".join(content_list)
 
     published_date = ""
 
     parts = url.split("/")
 
     if "read" in parts:
+
         idx = parts.index("read")
 
         if len(parts) > idx + 3:
+
             published_date = (
                 f"{parts[idx + 1]}-"
                 f"{parts[idx + 2]}-"
                 f"{parts[idx + 3]}"
             )
 
-    category = "unknown"
-
     try:
-        domain = (
+
+        category = (
             url.split("//")[1]
             .split(".")[0]
+            .lower()
         )
 
-        category = domain
-
     except:
-        pass
+
+        category = "unknown"
 
     return Article(
         title=title,
