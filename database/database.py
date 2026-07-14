@@ -108,7 +108,8 @@ def search_articles(
             category,
             published_date,
             crawl_date,
-            url
+            url,
+            content
         FROM articles
         WHERE
             LOWER(title) LIKE LOWER(?)
@@ -143,7 +144,8 @@ def get_all_articles():
             category,
             published_date,
             crawl_date,
-            url
+            url,
+            content
         FROM articles
         ORDER BY published_date DESC
         """
@@ -173,7 +175,8 @@ def get_articles_by_source(
             category,
             published_date,
             crawl_date,
-            url
+            url,
+            content
         FROM articles
         WHERE LOWER(source) = LOWER(?)
         ORDER BY published_date DESC
@@ -205,7 +208,8 @@ def get_articles_by_category(
             category,
             published_date,
             crawl_date,
-            url
+            url,
+            content
         FROM articles
         WHERE LOWER(category) = LOWER(?)
         ORDER BY published_date DESC
@@ -237,7 +241,8 @@ def get_articles_by_date(
             category,
             published_date,
             crawl_date,
-            url
+            url,
+            content
         FROM articles
         WHERE published_date = ?
         ORDER BY published_date DESC

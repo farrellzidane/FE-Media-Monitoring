@@ -60,6 +60,9 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
         if "/newsletter" in href:
             continue
 
+        if not href.startswith("/ekonomi/"):
+            continue
+
         if "/info-tempo" in href:
             continue
 
@@ -157,23 +160,12 @@ def get_article(url):
             .split("T")[0]
         )
 
-    parts = (
-        url.replace(
-            "https://www.tempo.co/",
-            ""
-        )
-        .split("/")
-    )
-
-    if len(parts) > 0:
-        category = parts[0].lower()
-    else:
-        category = "unknown"
+    category = "financial"
 
     return Article(
         title=title,
         url=url,
-        source="Tempo",
+        source="Tempo Ekonomi",
         category=category,
         published_date=published_date,
         content=content

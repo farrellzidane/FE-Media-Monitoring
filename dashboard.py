@@ -36,6 +36,12 @@ from services.data_quality_service import (
     get_data_quality_report
 )
 
+from services.sentiment_service import analyze_sentiment
+
+print("=" * 50)
+print(analyze_sentiment("IHSG menguat tajam setelah Bank Indonesia menurunkan suku bunga"))
+print("=" * 50)
+
 DATABASE_FILE = "data/articles.db"
 
 st.set_page_config(
@@ -62,13 +68,6 @@ def load_main_df():
     df = pd.read_sql_query(query, connection)
 
     connection.close()
-
-    print("=" * 50)
-    print("ROWS:", len(df))
-    print(df["published_date"].min())
-    print(df["published_date"].max())
-    print(df.head())
-    print("=" * 50)
 
     return df
 
@@ -102,35 +101,113 @@ st.title(
     "📰 Media Monitoring Dashboard"
 )
 
+st.sidebar.header("📰 Monitored News Sources")
+
+sources = sorted(
+    df["source"].unique()
+)
+
+for source in sources:
+    st.sidebar.success(source)
+
+st.sidebar.divider()
+
+st.sidebar.subheader("📊 Summary")
+
+st.sidebar.metric(
+    "Articles",
+    len(df)
+)
+
+st.sidebar.metric(
+    "Sources",
+    df["source"].nunique()
+)
+
+st.sidebar.metric(
+    "Categories",
+    df["category"].nunique()
+)
+
+st.sidebar.metric(
+    "Latest",
+    df["published_date"].max()
+)
+
 st.markdown(
     "News Aggregation & Analytics"
+)
+
+st.caption(
+    "Powered by IndoBERT • Updated Automatically • Last 30 Days"
 )
 
 # ======================================
 # METRICS
 # ======================================
 
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     st.metric(
-        "Total Articles",
+        "📰 Total Articles",
         len(df)
     )
 
 with col2:
     st.metric(
-        "Sources",
+        "📰 News Sources",
         df["source"].nunique()
     )
 
 with col3:
     st.metric(
-        "Categories",
+        "📂 Categories",
         df["category"].nunique()
     )
 
+with col4:
+
+    latest = df["published_date"].max()
+
+    st.metric(
+        "🕒 Latest News",
+        latest
+    )
+
 st.divider()
+
+st.subheader("📰 Latest Headlines")
+
+latest_news = (
+    df.sort_values(
+        "published_date",
+        ascending=False
+    )
+    .head(10)
+)
+
+latest_news = latest_news.rename(
+    columns={
+        "published_date": "Date",
+        "source": "Source",
+        "category": "Category",
+        "title": "Headline"
+    }
+)
+
+st.dataframe(
+    latest_news[
+        [
+            "Date",
+            "Source",
+            "Category",
+            "Headline"
+        ]
+    ],
+    use_container_width=True,
+    hide_index=True
+)
 
 # ======================================
 # DATA QUALITY
@@ -193,11 +270,24 @@ daily_df = pd.DataFrame(
     }
 )
 
-st.line_chart(
-    daily_df.set_index(
-        "Date"
-    )
+fig = px.line(
+    daily_df,
+    x="Date",
+    y="Articles",
+    markers=True
 )
+
+fig.update_layout(
+    template="plotly_dark",
+    height=450,
+    xaxis_title="Date",
+    yaxis_title="Articles"
+)
+
+st.plotly_chart(
+    fig,
+    use_container_width=True
+    )
 
 st.divider()
 
@@ -274,18 +364,16 @@ if not trend_df.empty:
 # CATEGORY DISTRIBUTION
 # ======================================
 
-st.subheader(
-    "📊 Category Distribution"
-)
+st.subheader("📊 Category Distribution")
 
 important_categories = [
     "General",
     "Business",
     "Sports",
-    "International",
-    "Regional",
-    "Entertainment",
     "Science",
+    "Regional",
+    "International",
+    "Entertainment",
     "Law"
 ]
 
@@ -300,7 +388,34 @@ category_counts = category_counts[
     )
 ]
 
-st.bar_chart(category_counts)
+category_counts = category_counts.sort_values(
+    ascending=False
+)
+
+category_chart = category_counts.reset_index()
+category_chart.columns = [
+    "Category",
+    "Articles"
+]
+
+fig = px.bar(
+    category_chart,
+    x="Category",
+    y="Articles",
+    color="Articles",
+    color_continuous_scale="Blues"
+)
+
+fig.update_layout(
+    template="plotly_dark",
+    height=450,
+    coloraxis_showscale=False
+)
+
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
 
 # ======================================
 # CATEGORY SENTIMENT BREAKDOWN
@@ -336,184 +451,49 @@ category_df = category_df.drop(
     columns="Total"
 )
 
+category_df = category_df.sort_values(
+    "Negative",
+    ascending=False
+)
+
 st.dataframe(
     category_df,
     use_container_width=True
 )
 
-chart_df = category_df.set_index("Category")
 
-st.bar_chart(chart_df)
-
-# ======================================
-# CATEGORY SENTIMENT INSIGHTS
-# ======================================
-
-st.subheader("🧠 Category Sentiment Insights")
-
-categories = sorted(
-    category_sentiment.items(),
-    key=lambda x: sum(x[1].values()),
-    reverse=True
-)
-
-filtered_categories = []
-
-for category, stats in categories:
-
-    total = (
-        stats["positive"]
-        + stats["negative"]
-        + stats["neutral"]
-    )
-
-    if total < 5:
-        continue
-
-    negative_pct = (
-        stats["negative"] / total * 100
-    )
-
-    if total >= 10:
-        filtered_categories.append((category, stats))
-
-    elif total >= 5 and negative_pct >= 70:
-        filtered_categories.append((category, stats))
-
-for i in range(0, len(filtered_categories), 3):
-
-    cols = st.columns(3)
-
-    for j in range(3):
-
-        if i + j >= len(filtered_categories):
-            break
-
-        category, stats = filtered_categories[i + j]
-
-        total = (
-            stats["positive"]
-            + stats["negative"]
-            + stats["neutral"]
-        )
-
-        positive_pct = round(
-            stats["positive"] / total * 100,
-            1
-        )
-
-        negative_pct = round(
-            stats["negative"] / total * 100,
-            1
-        )
-
-        neutral_pct = round(
-            stats["neutral"] / total * 100,
-            1
-        )
-
-        with cols[j]:
-
-            with st.container(border=True):
-
-                st.markdown(
-                    f"### {category} ({total})"
-                )
-
-                st.write(
-                    f"🟢 Positive: {positive_pct}%"
-                )
-
-                st.write(
-                    f"🔴 Negative: {negative_pct}%"
-                )
-
-                st.write(
-                    f"⚪ Neutral: {neutral_pct}%"
-                )
-
-                if negative_pct >= 50:
-                    st.error("High Negative")
-
-                elif positive_pct >= 60:
-                    st.success("High Positive")
-
-                else:
-                    st.info("Mostly Neutral")
-#==============
-# Source Authority Map
-#==============
-
-st.subheader("🫧 Source Authority Map")
-
-authority_data = get_source_authority_map()
-
-authority_df = pd.DataFrame(authority_data)
-
-if not authority_df.empty:
-
-
-    authority_df["tier_jitter"] = authority_df["tier"].astype(float)
-
-    tier_counts = {}
-
-    for i in authority_df.index:
-        tier = authority_df.loc[i, "tier"]
-
-        if tier not in tier_counts:
-            tier_counts[tier] = 0
-
-        offset = (tier_counts[tier] - 2) * 0.12
-        authority_df.loc[i, "tier_jitter"] += offset
-
-        tier_counts[tier] += 1
-
-    fig = px.scatter(
-        authority_df,
-        x="tier_jitter",
-        y="score",
-        size="volume",
-        color="sentiment",
-        hover_name="source",
-        size_max=60,
-        color_discrete_map={
-            "Positive": "#00cc96",
-            "Neutral": "#FFB300",
-            "Negative": "#ff4b4b"
-        }
-    )
-    fig.update_layout(
-        template="plotly_dark",
-        height=700,
-        xaxis_title="Authority Tier",
-        yaxis_title="Sentiment Score",
-        xaxis=dict(
-            tickmode="array",
-            tickvals=[1, 2, 3],
-            ticktext=["Tier 1", "Tier 2", "Tier 3"]
-        )
-    )
-
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
 
 # ======================================
 # SOURCE DISTRIBUTION
 # ======================================
 
-st.subheader(
-    "📰 Source Distribution"
-)
+st.subheader("📰 Source Distribution")
 
 source_counts = (
     df["source"]
     .value_counts()
 )
 
-st.bar_chart(
-    source_counts
+fig = px.bar(
+    x=source_counts.index,
+    y=source_counts.values,
+    labels={
+        "x": "Source",
+        "y": "Articles"
+    },
+    color=source_counts.values,
+    color_continuous_scale="Blues"
+)
+
+fig.update_layout(
+    template="plotly_dark",
+    height=450,
+    coloraxis_showscale=False
+)
+
+st.plotly_chart(
+    fig,
+    use_container_width=True
 )
 
 # ======================================
@@ -528,6 +508,27 @@ ranking_df = pd.DataFrame(ranking)
 
 st.dataframe(
     ranking_df,
+    use_container_width=True
+)
+
+fig = px.bar(
+    ranking_df,
+    x="source",
+    y="score",
+    color="score",
+    color_continuous_scale="RdYlGn"
+)
+
+fig.update_layout(
+    template="plotly_dark",
+    height=450,
+    coloraxis_showscale=False,
+    xaxis_title="Source",
+    yaxis_title="Score"
+)
+
+st.plotly_chart(
+    fig,
     use_container_width=True
 )
 
@@ -550,6 +551,7 @@ for source, stats in sentiment_data.items():
     })
 
 sentiment_df = pd.DataFrame(sentiment_rows)
+st.write(sentiment_df)
 
 # table
 st.dataframe(
@@ -558,46 +560,24 @@ st.dataframe(
 )
 
 # comparison chart
-chart_df = sentiment_df.set_index("Source")
+fig = px.bar(
+    sentiment_df,
+    x="Source",
+    y=[
+        "Positive",
+        "Neutral",
+        "Negative"
+    ],
+    barmode="group",
+    template="plotly_dark"
+)
 
-st.bar_chart(chart_df)
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
 
-# ======================================
-# TOPIC SENTIMENT
-# ======================================
-
-st.subheader("🧠 Topic Sentiment Analysis")
-
-topics = get_topic_sentiments()
-
-for topic in topics:
-
-    with st.expander(
-        f"Topic {topic['topic_id']} ({topic['article_count']} articles)"
-    ):
-
-        st.write(
-            "Keywords: " +
-            ", ".join(topic["keywords"])
-        )
-
-        col1, col2, col3 = st.columns(3)
-
-        col1.metric(
-            "Positive",
-            topic["positive"]
-        )
-
-        col2.metric(
-            "Negative",
-            topic["negative"]
-        )
-
-        col3.metric(
-            "Neutral",
-            topic["neutral"]
-        )
-
+    
 # ======================================
 # TOP KEYWORDS
 # ======================================
@@ -614,42 +594,24 @@ keyword_df = pd.DataFrame(
     ]
 )
 
-st.dataframe(
+fig = px.bar(
     keyword_df,
+    x="Keyword",
+    y="Count",
+    color="Count",
+    color_continuous_scale="Viridis"
+)
+
+fig.update_layout(
+    template="plotly_dark",
+    height=450,
+    coloraxis_showscale=False
+)
+
+st.plotly_chart(
+    fig,
     use_container_width=True
 )
-
-# ======================================
-# TOPIC DISCOVERY
-# ======================================
-
-st.subheader(
-    "🧠 Topic Discovery"
-)
-
-topics = get_topic_discovery()
-
-for topic in topics:
-
-    with st.expander(
-        f"Topic {topic['topic_id']} "
-        f"({topic['article_count']} articles)"
-    ):
-
-        st.write(
-            "**Keywords:** "
-            + ", ".join(
-                topic["keywords"]
-            )
-        )
-
-        for title in topic[
-            "titles"
-        ]:
-
-            st.write(
-                f"• {title}"
-            )
 
 # ======================================
 # LIVE NEWS FEED
@@ -812,4 +774,3 @@ st.dataframe(
     filtered_df,
     use_container_width=True
 )
-

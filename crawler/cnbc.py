@@ -133,12 +133,7 @@ def get_article(url):
 
     content = "\n".join(content_list)
 
-    category = "unknown"
-
-    parts = url.split("/")
-
-    if len(parts) > 3:
-        category = parts[3]
+    category = "economy"
 
     published_date = ""
 

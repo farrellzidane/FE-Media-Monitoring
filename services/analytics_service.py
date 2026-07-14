@@ -5,8 +5,7 @@ from database.database import (
 )
 
 from services.sentiment_service import (
-    analyze_sentiment,
-    analyze_sentiment_detailed
+    analyze_sentiment
 )
 
 from sklearn.feature_extraction.text import (
@@ -89,22 +88,38 @@ OBJECTIVE_WORDS = {
 def get_articles_with_sentiment():
 
     articles = get_all_articles()
+
     enriched_articles = []
 
     for article in articles:
+
         title = article[0]
+        source = article[1]
+        category = article[2]
+        published_date = article[3]
+        content = article[6] or ""
 
-        sentiment_data = analyze_sentiment_detailed(title)
+        full_text = (
+            title
+            + "\n\n"
+            + content
+        )
 
-        enriched_articles.append({
-            "title": article[0],
-            "source": article[1],
-            "category": article[2],
-            "published_date": article[3],
-            "sentiment": sentiment_data["label"],
-            "confidence": sentiment_data["confidence"],
-            "scores": sentiment_data["scores"]
-        })
+        sentiment_data = analyze_sentiment(
+            full_text
+        )
+
+        enriched_articles.append(
+            {
+                "title": title,
+                "source": source,
+                "category": category,
+                "published_date": published_date,
+                "content": content,
+                "sentiment": sentiment_data["label"],
+                "confidence": sentiment_data["confidence"]
+            }
+        )
 
     return enriched_articles
 

@@ -1,27 +1,14 @@
 CNN_URLS = [
-    "https://www.cnnindonesia.com/nasional",
-    "https://www.cnnindonesia.com/internasional",
-    "https://www.cnnindonesia.com/ekonomi",
-    "https://www.cnnindonesia.com/olahraga",
-    "https://www.cnnindonesia.com/teknologi"
+    "https://www.cnnindonesia.com/ekonomi"
 ]
 
 DETIK_URLS = [
-    "https://news.detik.com",
-    "https://finance.detik.com",
-    "https://sport.detik.com",
-    "https://inet.detik.com"
+    "https://finance.detik.com"
 ]
 
-KOMPAS_URL = "https://www.kompas.com"
-TEMPO_URL = "https://www.tempo.co"
+KOMPAS_URL = "https://money.kompas.com"
+TEMPO_URL = "https://www.tempo.co/ekonomi"
 
-TRIBUN_URLS = [
-    "https://www.tribunnews.com",
-    "https://jabar.tribunnews.com",
-    "https://jatim.tribunnews.com",
-    "https://medan.tribunnews.com"
-]
 
 CNBC_URLS = [
     "https://www.cnbcindonesia.com/market",
@@ -32,22 +19,16 @@ CNBC_URLS = [
 LIPUTAN6_URL = "https://www.liputan6.com"
 KUMPARAN_URL = "https://kumparan.com"
 OKEZONE_URLS = [
-    "https://news.okezone.com",
-    "https://economy.okezone.com",
-    "https://sports.okezone.com",
-    "https://techno.okezone.com"
+    "https://economy.okezone.com"
 ]
 SINDONEWS_URLS = [
-    "https://nasional.sindonews.com",
-    "https://ekbis.sindonews.com",
-    "https://sports.sindonews.com",
-    "https://international.sindonews.com"
+    "https://ekbis.sindonews.com"
 ]
 KUMPARAN_GRAPHQL_URL = (
     "https://cdn-graphql-v4.kumparan.com/query"
 )
 
-MAX_ARTICLES = 200
+MAX_ARTICLES = 30
 
 REQUEST_TIMEOUT = 20
 

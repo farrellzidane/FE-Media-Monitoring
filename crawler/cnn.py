@@ -40,6 +40,9 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
                 if not href.startswith("https://www.cnnindonesia.com"):
                     continue
 
+                if "/ekonomi/" not in href:
+                    continue
+
                 if "/202" not in href:
                     continue
 
@@ -156,12 +159,7 @@ def get_article(url):
                     f"{article_id[6:8]}"
                 )
 
-    category = ""
-
-    parts = url.split("/")
-
-    if len(parts) > 3:
-        category = parts[3].lower()
+    category = "economy"
 
     return Article(
         title=title,

@@ -47,6 +47,9 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
                 if not href:
                     continue
 
+                if "/finance/" not in href:
+                    continue
+
                 if "/d-" not in href:
                     continue
 
@@ -193,17 +196,12 @@ def get_article(url):
             if raw_date:
                 published_date = raw_date[:10]
 
-    category = ""
-
-    parts = url.split("/")
-
-    if len(parts) > 3:
-        category = parts[3].lower()
+    category = "economy"
 
     return Article(
         title=title,
         url=url,
-        source="Detik",
+        source="Detik Finance",
         category=category,
         published_date=published_date,
         content=content

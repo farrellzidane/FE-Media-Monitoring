@@ -1,7 +1,7 @@
 import json
 import requests
 
-from urllib.parse import urlparse
+
 from datetime import datetime, timedelta
 
 from bs4 import BeautifulSoup
@@ -47,6 +47,9 @@ def get_latest_article_urls(limit=MAX_ARTICLES):
             continue
 
         if "/read/" not in href:
+            continue
+
+        if "money.kompas.com" not in href:
             continue
 
         if "/opini/" in href:
@@ -224,34 +227,12 @@ def get_article(url):
                     f"{parts[idx + 3]}"
                 )
 
-    parsed = urlparse(url)
-
-    if parsed.netloc.startswith("www.kompas.com"):
-
-        path_parts = parsed.path.split("/")
-
-        if len(path_parts) > 1:
-            category = path_parts[1].lower()
-        else:
-            category = "unknown"
-
-    else:
-
-        category = parsed.netloc.split(".")[0].lower()
-
-    if category == "edu":
-        category = "edukasi"
-
-    elif category == "bola":
-        category = "olahraga"
-
-    elif category == "bola-sports":
-        category = "olahraga"
+    category = "financial"
 
     return Article(
         title=title,
         url=url,
-        source="Kompas",
+        source="Kompas Money",
         category=category,
         published_date=published_date,
         content=content
