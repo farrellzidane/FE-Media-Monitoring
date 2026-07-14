@@ -1,48 +1,11 @@
-import sqlite3
 import pandas as pd
-import numpy as np
 import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
 
-from services.analytics_service import (
-    get_source_authority_map
-)
+from requests import RequestException
 
-from services.analytics_service import (
-    get_sentiment_by_source
-)
-
-from services.analytics_service import (
-    get_source_ranking
-)
-
-from services.topic_sentiment_service import (
-    get_topic_sentiments
-)
-
-from services.analytics_service import (
-    get_daily_volume,
-    get_top_keywords,
-    get_topic_discovery,
-    get_sentiment_trend,
-    get_sentiment_by_category,
-    get_media_framing_analysis,
-    get_latest_articles
-)
-
-
-from services.data_quality_service import (
-    get_data_quality_report
-)
-
-from services.sentiment_service import analyze_sentiment
-
-print("=" * 50)
-print(analyze_sentiment("IHSG menguat tajam setelah Bank Indonesia menurunkan suku bunga"))
-print("=" * 50)
-
-DATABASE_FILE = "data/articles.db"
+from api_client import API_BASE_URL, get_analytics, get_articles
 
 st.set_page_config(
     page_title="Media Monitoring Dashboard",
@@ -51,47 +14,34 @@ st.set_page_config(
 
 @st.cache_data
 def load_main_df():
-    connection = sqlite3.connect(DATABASE_FILE)
-
-    query = """
-    SELECT
-        title,
-        source,
-        category,
-        published_date,
-        crawl_date,
-        url
-    FROM articles
-    ORDER BY published_date DESC
-    """
-
-    df = pd.read_sql_query(query, connection)
-
-    connection.close()
-
-    return df
+    columns = [
+        "title",
+        "source",
+        "category",
+        "published_date",
+        "crawl_date",
+        "url",
+    ]
+    return pd.DataFrame(get_articles(), columns=columns)
 
 @st.cache_data(ttl=600)
 def load_cached_analytics():
-    return {
-        "quality": get_data_quality_report(),
-        "daily_volume": get_daily_volume(),
-        "trend": get_sentiment_trend(),
-        "category_sentiment": get_sentiment_by_category(),
-        "framing": get_media_framing_analysis(),
-        "authority": get_source_authority_map(),
-        "ranking": get_source_ranking(),
-        "source_sentiment": get_sentiment_by_source(),
-        "keywords": get_top_keywords(15),
-        "latest_articles": get_latest_articles(15)
-    }
+    return get_analytics(keyword_limit=15, article_limit=15)
 
 
 # ======================================
 # LOAD DATA
 # ======================================
-df = load_main_df()
-analytics = load_cached_analytics()
+try:
+    df = load_main_df()
+    analytics = load_cached_analytics()
+except RequestException as error:
+    st.error(
+        "The backend API is unavailable. Start it before opening the dashboard."
+    )
+    st.code(f"cd ../BE-Media-Monitoring && uvicorn api:app --reload")
+    st.caption(f"Backend URL: {API_BASE_URL} ({error})")
+    st.stop()
 
 # ======================================
 # HEADER
@@ -131,7 +81,7 @@ st.sidebar.metric(
 
 st.sidebar.metric(
     "Latest",
-    df["published_date"].max()
+    df["published_date"].max() if not df.empty else "No data"
 )
 
 st.markdown(
@@ -168,7 +118,11 @@ with col3:
 
 with col4:
 
-    latest = df["published_date"].max()
+    latest = (
+        df["published_date"].max()
+        if not df.empty
+        else "No data"
+    )
 
     st.metric(
         "🕒 Latest News",
@@ -217,9 +171,7 @@ st.subheader(
     "🛡 Data Quality"
 )
 
-quality = (
-    get_data_quality_report()
-)
+quality = analytics["quality"]
 
 col1, col2, col3, col4 = st.columns(4)
 
@@ -257,7 +209,7 @@ st.subheader(
     "📈 Daily Article Volume"
 )
 
-daily_volume = get_daily_volume()
+daily_volume = analytics["daily_volume"]
 
 daily_df = pd.DataFrame(
     {
@@ -297,7 +249,7 @@ st.divider()
 
 st.subheader("📈 News Sentiment Trend")
 
-trend = get_sentiment_trend()
+trend = analytics["trend"]
 
 trend_rows = []
 
@@ -423,7 +375,7 @@ st.plotly_chart(
 
 st.subheader("📊 Category Sentiment Breakdown")
 
-category_sentiment = get_sentiment_by_category()
+category_sentiment = analytics["category_sentiment"]
 
 category_rows = []
 
@@ -435,7 +387,15 @@ for category, stats in category_sentiment.items():
         "Neutral": stats["neutral"]
     })
 
-category_df = pd.DataFrame(category_rows)
+category_df = pd.DataFrame(
+    category_rows,
+    columns=[
+        "Category",
+        "Positive",
+        "Negative",
+        "Neutral",
+    ]
+)
 
 category_df["Total"] = (
     category_df["Positive"]
@@ -502,35 +462,39 @@ st.plotly_chart(
 
 st.subheader("🏆 Source Sentiment Ranking")
 
-ranking = get_source_ranking()
+ranking = analytics["ranking"]
 
-ranking_df = pd.DataFrame(ranking)
+ranking_df = pd.DataFrame(
+    ranking,
+    columns=["source", "score"]
+)
 
 st.dataframe(
     ranking_df,
     use_container_width=True
 )
 
-fig = px.bar(
-    ranking_df,
-    x="source",
-    y="score",
-    color="score",
-    color_continuous_scale="RdYlGn"
-)
+if not ranking_df.empty:
+    fig = px.bar(
+        ranking_df,
+        x="source",
+        y="score",
+        color="score",
+        color_continuous_scale="RdYlGn"
+    )
 
-fig.update_layout(
-    template="plotly_dark",
-    height=450,
-    coloraxis_showscale=False,
-    xaxis_title="Source",
-    yaxis_title="Score"
-)
+    fig.update_layout(
+        template="plotly_dark",
+        height=450,
+        coloraxis_showscale=False,
+        xaxis_title="Source",
+        yaxis_title="Score"
+    )
 
-st.plotly_chart(
-    fig,
-    use_container_width=True
-)
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
 
 # ======================================
 # SENTIMENT BY SOURCE
@@ -538,7 +502,7 @@ st.plotly_chart(
 
 st.subheader("😊 Sentiment Comparison by Source")
 
-sentiment_data = get_sentiment_by_source()
+sentiment_data = analytics["source_sentiment"]
 
 sentiment_rows = []
 
@@ -550,8 +514,15 @@ for source, stats in sentiment_data.items():
         "Neutral": stats["neutral"]
     })
 
-sentiment_df = pd.DataFrame(sentiment_rows)
-st.write(sentiment_df)
+sentiment_df = pd.DataFrame(
+    sentiment_rows,
+    columns=[
+        "Source",
+        "Positive",
+        "Negative",
+        "Neutral",
+    ]
+)
 
 # table
 st.dataframe(
@@ -560,22 +531,23 @@ st.dataframe(
 )
 
 # comparison chart
-fig = px.bar(
-    sentiment_df,
-    x="Source",
-    y=[
-        "Positive",
-        "Neutral",
-        "Negative"
-    ],
-    barmode="group",
-    template="plotly_dark"
-)
+if not sentiment_df.empty:
+    fig = px.bar(
+        sentiment_df,
+        x="Source",
+        y=[
+            "Positive",
+            "Neutral",
+            "Negative"
+        ],
+        barmode="group",
+        template="plotly_dark"
+    )
 
-st.plotly_chart(
-    fig,
-    use_container_width=True
-)
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
 
     
 # ======================================
@@ -587,7 +559,7 @@ st.subheader(
 )
 
 keyword_df = pd.DataFrame(
-    get_top_keywords(15),
+    analytics["keywords"],
     columns=[
         "Keyword",
         "Count"
@@ -621,7 +593,7 @@ st.divider()
 
 st.subheader("📰 Live News Feed")
 
-latest_articles = get_latest_articles(15)
+latest_articles = analytics["latest_articles"]
 
 for article in latest_articles:
 

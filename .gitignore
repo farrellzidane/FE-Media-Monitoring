@@ -2,27 +2,6 @@
 __pycache__/
 *.pyc
 
-# Database
-data/articles.db
-
-# Generated data
-data/articles.csv
-data/articles.json
-data/articles.db
-ml/datasets/news_headlines.csv
-ml/datasets/sentiment_dataset.csv
-
-# Model
-ml/models/
-
-# Checkpoints
-checkpoint-*/
-
-# Debug
-debug_*.py
-output.txt
-structure.txt
-check_dataset.py
-
 # Virtual env
 venv/
+.venv/
