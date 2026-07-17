@@ -78,7 +78,13 @@ export function Layout({ children, currentPage, onPageChange, darkMode, onToggle
   );
 
   return (
-    <div className={`flex h-screen overflow-hidden ${darkMode ? "dark" : ""} bg-slate-50 dark:bg-slate-950`}>
+    <div
+      className={`flex h-screen overflow-hidden transition-colors ${
+        darkMode
+          ? "dark bg-slate-950 text-slate-100 [color-scheme:dark]"
+          : "bg-slate-50 text-slate-900 [color-scheme:light]"
+      }`}
+    >
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-56 bg-slate-900 border-r border-slate-800 flex-shrink-0">
         <NavContent />
@@ -101,7 +107,7 @@ export function Layout({ children, currentPage, onPageChange, darkMode, onToggle
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors">
         {/* Top Bar */}
         <header className="sticky top-0 z-40 flex items-center gap-3 px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
           <button
@@ -193,11 +199,11 @@ export function Layout({ children, currentPage, onPageChange, darkMode, onToggle
           <div className="flex sm:hidden items-center gap-1 ml-auto">
             <button
               onClick={onToggleDark}
-              className="p-2 rounded-lg text-slate-500 hover:bg-slate-100"
+              className="p-2 rounded-lg text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <button className="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100">
+            <button className="relative p-2 rounded-lg text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
               <Bell className="w-4 h-4" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
             </button>

@@ -81,14 +81,14 @@ function formatDate(dateStr: string) {
   return d.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
 }
 
-export function Overview() {
+export function Overview({ onViewAllArticles }: { onViewAllArticles: () => void }) {
   const { data } = useDashboardData();
   const {
     articleVolumeData, sentimentTrendData, categoryDistribution,
     sourceDistribution, trendingTopics, articles, insights,
     overallSentiment: donutData, summary, dataQualityMetrics,
   } = data;
-  const [volumeView, setVolumeView] = useState<"daily" | "weekly">("daily");
+  const [volumeView, setVolumeView] = useState<"daily" | "weekly" | "monthly">("daily");
   const [selectedArticle, setSelectedArticle] = useState<DashboardArticle | null>(null);
   const [savedArticles, setSavedArticles] = useState<Set<string>>(new Set());
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
@@ -120,7 +120,25 @@ export function Overview() {
     });
   }
 
-  const chartData = volumeView === "daily" ? articleVolumeData : weeklyData;
+  const monthlyData = articleVolumeData.reduce<typeof articleVolumeData>((months, day) => {
+    const monthLabel = day.date.split(/\s+/).find(part => /[^\d]/.test(part)) ?? day.date;
+    const currentMonth = months.at(-1);
+
+    if (currentMonth?.date === monthLabel) {
+      currentMonth.articles += day.articles;
+      currentMonth.prev += day.prev;
+    } else {
+      months.push({ date: monthLabel, articles: day.articles, prev: day.prev });
+    }
+
+    return months;
+  }, []);
+
+  const chartData = volumeView === "daily"
+    ? articleVolumeData
+    : volumeView === "weekly"
+      ? weeklyData
+      : monthlyData;
 
   const artWithSave = articles.map(a => ({ ...a, saved: savedArticles.has(a.id) }));
 
@@ -165,7 +183,7 @@ export function Overview() {
                 <p className="text-xs text-slate-400">Periode saat ini vs periode sebelumnya</p>
               </div>
               <div className="flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-                {(["daily", "weekly"] as const).map(v => (
+                {(["daily", "weekly", "monthly"] as const).map(v => (
                   <button
                     key={v}
                     onClick={() => setVolumeView(v)}
@@ -175,7 +193,7 @@ export function Overview() {
                         : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
                     }`}
                   >
-                    {v === "daily" ? "Harian" : "Mingguan"}
+                    {{ daily: "Harian", weekly: "Mingguan", monthly: "Bulanan" }[v]}
                   </button>
                 ))}
               </div>
@@ -392,7 +410,11 @@ export function Overview() {
           <div className="xl:col-span-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800">
               <h3 className="text-slate-900 dark:text-slate-100">Cakupan Terbaru</h3>
-              <button className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+              <button
+                type="button"
+                onClick={onViewAllArticles}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+              >
                 Lihat semua <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>

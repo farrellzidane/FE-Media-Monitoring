@@ -9,7 +9,7 @@ backend.
 Start the backend from the workspace root:
 
 ```bash
-cd BE-Media-Monitoring
+cd BE-Media-Monitoring-Rev
 ../.venv/bin/uvicorn api:app --reload
 ```
 

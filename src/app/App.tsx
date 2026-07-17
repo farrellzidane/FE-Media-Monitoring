@@ -52,7 +52,7 @@ function DashboardApp() {
 
   const renderPage = () => {
     switch (currentPage) {
-      case "overview": return <Overview />;
+      case "overview": return <Overview onViewAllArticles={() => setCurrentPage("articles")} />;
       case "articles": return <Articles initialSearch={globalSearch} />;
       case "sentiment": return <SentimentPage />;
       case "quality": return <DataQuality />;
