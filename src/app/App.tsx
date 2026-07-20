@@ -4,6 +4,7 @@ import { Overview } from "./components/Overview";
 import { Articles } from "./components/Articles";
 import { SentimentPage } from "./components/SentimentPage";
 import { DataQuality } from "./components/DataQuality";
+import { DataQualityRuleDetail } from "./components/DataQualityRuleDetail";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { DashboardDataProvider, useDashboardData } from "./DashboardDataContext";
 
@@ -25,6 +26,7 @@ function DashboardApp() {
   const [currentPage, setCurrentPage] = useState<Page>("overview");
   const [darkMode, setDarkMode] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
+  const [selectedQualityRule, setSelectedQualityRule] = useState<string | null>(null);
   const { data, loading, error, refresh } = useDashboardData();
 
   if (loading && data.articles.length === 0) {
@@ -52,10 +54,12 @@ function DashboardApp() {
 
   const renderPage = () => {
     switch (currentPage) {
-      case "overview": return <Overview onViewAllArticles={() => setCurrentPage("articles")} />;
+      case "overview": return <Overview onViewAllArticles={() => { setSelectedQualityRule(null); setCurrentPage("articles"); }} />;
       case "articles": return <Articles initialSearch={globalSearch} />;
       case "sentiment": return <SentimentPage />;
-      case "quality": return <DataQuality />;
+      case "quality": return selectedQualityRule
+        ? <DataQualityRuleDetail ruleKey={selectedQualityRule} onBack={() => setSelectedQualityRule(null)} />
+        : <DataQuality onSelectRule={setSelectedQualityRule} />;
       case "topics": return <PlaceholderPage title="Topik & Kata Kunci" desc="Eksplorasi kata kunci trending, frekuensi sebutan, dan co-occurrence network." />;
       case "sources": return <PlaceholderPage title="Sumber Berita" desc="Analisis mendalam per sumber: volume, sentimen dominan, dan perbandingan." />;
       case "export": return <PlaceholderPage title="Export Data" desc="Ekspor artikel, laporan sentimen, dan data analitik ke CSV atau PDF." />;
@@ -66,11 +70,15 @@ function DashboardApp() {
   return (
     <Layout
       currentPage={currentPage}
-      onPageChange={setCurrentPage}
+      onPageChange={(page) => {
+        setSelectedQualityRule(null);
+        setCurrentPage(page);
+      }}
       darkMode={darkMode}
       onToggleDark={() => setDarkMode(d => !d)}
       onSearch={(query) => {
         setGlobalSearch(query);
+        setSelectedQualityRule(null);
         setCurrentPage("articles");
       }}
     >

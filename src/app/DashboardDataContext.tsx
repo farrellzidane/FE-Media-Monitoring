@@ -42,6 +42,89 @@ interface SentimentCounts {
   negative: number;
 }
 
+export type QualityStatus = "excellent" | "healthy" | "warning" | "critical";
+
+export interface QualityRule {
+  key: string;
+  label: string;
+  description: string;
+  recommendation: string;
+  dimension: string;
+  weight: number;
+  applicable: number;
+  passed: number;
+  failed: number;
+  score: number;
+  severity: Exclude<QualityStatus, "excellent">;
+}
+
+export interface QualityDimension {
+  key: string;
+  label: string;
+  weight: number;
+  score: number;
+  weightedScore: number;
+  issues: number;
+  status: QualityStatus;
+}
+
+export type EvidenceResultFilter = "all" | "passed" | "failed";
+
+export interface QualityEvidenceItem {
+  id: string;
+  entityType: "article" | "source";
+  result: Exclude<EvidenceResultFilter, "all">;
+  title: string;
+  source: string;
+  url: string | null;
+  publishedDate: string | null;
+  crawlDate: string | null;
+  observedValue: string;
+  expectedValue: string;
+  reason: string;
+}
+
+export interface QualityRuleEvidence {
+  rule: QualityRule & { dimensionLabel: string };
+  resultFilter: EvidenceResultFilter;
+  total: number;
+  filteredTotal: number;
+  limit: number;
+  offset: number;
+  evidence: QualityEvidenceItem[];
+}
+
+interface ApiQualityRuleEvidence {
+  rule: QualityRule & { dimension_label: string };
+  result_filter: EvidenceResultFilter;
+  total: number;
+  filtered_total: number;
+  limit: number;
+  offset: number;
+  evidence: {
+    id: string;
+    entity_type: "article" | "source";
+    result: "passed" | "failed";
+    title: string;
+    source: string;
+    url: string | null;
+    published_date: string | null;
+    crawl_date: string | null;
+    observed_value: string;
+    expected_value: string;
+    reason: string;
+  }[];
+}
+
+interface ApiQualitySource {
+  name: string;
+  status: Exclude<QualityStatus, "excellent">;
+  last_crawl?: string | null;
+  crawl_age_minutes?: number | null;
+  articles: number;
+  issues: number;
+}
+
 interface ApiAnalytics {
   quality: {
     total_articles: number;
@@ -50,6 +133,18 @@ interface ApiAnalytics {
     duplicate_titles: number;
     old_articles: number;
     quality_score: number;
+    status: QualityStatus;
+    dimensions: {
+      key: string;
+      label: string;
+      weight: number;
+      score: number;
+      weighted_score: number;
+      issues: number;
+      status: QualityStatus;
+    }[];
+    rules: QualityRule[];
+    sources: ApiQualitySource[];
   };
   daily_volume: Record<string, number>;
   trend: Record<string, SentimentCounts>;
@@ -60,7 +155,7 @@ interface ApiAnalytics {
   articles?: ApiArticle[];
 }
 
-type SourceStatus = "healthy" | "warning" | "critical";
+type SourceStatus = Exclude<QualityStatus, "excellent">;
 
 interface DashboardData {
   articles: DashboardArticle[];
@@ -81,12 +176,12 @@ interface DashboardData {
   };
   dataQualityMetrics: {
     overallScore: number;
-    missingDates: number;
-    duplicates: number;
-    staleArticles: number;
+    overallStatus: QualityStatus;
+    dimensions: QualityDimension[];
+    rules: QualityRule[];
     crawlIssues: number;
     lastCrawl: string;
-    sources: { name: string; status: SourceStatus; lastCrawl: string; articles: number; issues: number }[];
+    sources: { name: string; status: SourceStatus; lastCrawl: string; crawlAgeMinutes: number | null; articles: number; issues: number }[];
   };
 }
 
@@ -115,7 +210,7 @@ const emptyData: DashboardData = {
     { name: "Negatif", value: 0, color: "#ef4444", count: 0 },
   ],
   summary: { totalArticles: 0, totalSources: 0, totalCategories: 0, positivePercent: 0, negativePercent: 0, averageConfidence: 0 },
-  dataQualityMetrics: { overallScore: 0, missingDates: 0, duplicates: 0, staleArticles: 0, crawlIssues: 0, lastCrawl: "", sources: [] },
+  dataQualityMetrics: { overallScore: 0, overallStatus: "critical", dimensions: [], rules: [], crawlIssues: 0, lastCrawl: "", sources: [] },
 };
 
 const DashboardContext = createContext<DashboardContextValue | null>(null);
@@ -136,10 +231,9 @@ function displayDate(value: string) {
     : date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
 }
 
-function relativeTime(value: string, latestTimestamp: number) {
-  const timestamp = new Date(value.replace(" ", "T")).getTime();
-  if (!Number.isFinite(timestamp)) return "Tidak diketahui";
-  const minutes = Math.max(0, Math.round((latestTimestamp - timestamp) / 60_000));
+function relativeMinutes(value?: number | null) {
+  if (value == null || !Number.isFinite(value)) return "Tidak diketahui";
+  const minutes = Math.max(0, Math.round(value));
   if (minutes < 60) return `${minutes} menit lalu`;
   const hours = Math.round(minutes / 60);
   if (hours < 24) return `${hours} jam lalu`;
@@ -219,25 +313,35 @@ function mapDashboardData(analytics: ApiAnalytics, rawArticles: ApiArticle[]): D
     trend: [mentions, mentions],
   }));
 
-  const latestCrawl = articles.map(article => article.crawlDate).filter(Boolean).sort().at(-1) || "";
-  const latestTimestamp = new Date(latestCrawl.replace(" ", "T")).getTime() || Date.now();
   const sourceNames = [...new Set(articles.map(article => article.source))];
-  const sources = sourceNames.map(name => {
-    const matching = articles.filter(article => article.source === name);
-    const lastCrawl = matching.map(article => article.crawlDate).filter(Boolean).sort().at(-1) || "";
-    const timestamp = new Date(lastCrawl.replace(" ", "T")).getTime();
-    const ageMinutes = Number.isFinite(timestamp) ? Math.max(0, (latestTimestamp - timestamp) / 60_000) : Infinity;
-    const issues = matching.filter(article => !article.published || article.headline === "Tanpa judul").length;
-    const status: SourceStatus = ageMinutes >= 360 ? "critical" : ageMinutes >= 120 || issues > 0 ? "warning" : "healthy";
-    return { name, status, lastCrawl: relativeTime(lastCrawl, latestTimestamp), articles: matching.length, issues };
-  });
-  const crawlIssues = sources.filter(source => source.status !== "healthy").length;
   const quality = analytics.quality;
+  const sources = (quality.sources || []).map(source => ({
+    name: source.name,
+    status: source.status,
+    lastCrawl: relativeMinutes(source.crawl_age_minutes),
+    crawlAgeMinutes: source.crawl_age_minutes ?? null,
+    articles: source.articles,
+    issues: source.issues,
+  }));
+  const latestCrawl = (quality.sources || [])
+    .map(source => source.last_crawl || "")
+    .filter(Boolean)
+    .sort()
+    .at(-1) || "";
+  const crawlIssues = sources.filter(source => source.status !== "healthy").length;
 
   const insights: Insight[] = [];
-  if (quality.missing_dates > 0) insights.push({ id: "missing", severity: "warning", title: "Tanggal Publikasi Hilang", description: `${quality.missing_dates} artikel belum memiliki tanggal publikasi.`, time: "Data terbaru" });
-  if (quality.duplicate_titles > 0) insights.push({ id: "duplicates", severity: "warning", title: "Duplikasi Terdeteksi", description: `${quality.duplicate_titles} headline terdeteksi sebagai duplikat.`, time: "Data terbaru" });
-  if (crawlIssues > 0) insights.push({ id: "crawl", severity: "critical", title: "Sumber Perlu Perhatian", description: `${crawlIssues} sumber memiliki keterlambatan atau masalah metadata.`, time: "Data terbaru" });
+  (quality.rules || [])
+    .filter(rule => rule.failed > 0)
+    .sort((a, b) => b.weight - a.weight || b.failed - a.failed)
+    .slice(0, 3)
+    .forEach(rule => insights.push({
+      id: rule.key,
+      severity: rule.severity === "critical" ? "critical" : "warning",
+      title: rule.label,
+      description: `${rule.failed} dari ${rule.applicable} pemeriksaan gagal. ${rule.recommendation}`,
+      time: "Data terbaru",
+    }));
   if (!insights.length) insights.push({ id: "healthy", severity: "info", title: "Data Dalam Kondisi Baik", description: "Tidak ada masalah kualitas utama yang terdeteksi.", time: "Data terbaru" });
 
   return {
@@ -259,9 +363,17 @@ function mapDashboardData(analytics: ApiAnalytics, rawArticles: ApiArticle[]): D
     },
     dataQualityMetrics: {
       overallScore: quality.quality_score,
-      missingDates: quality.missing_dates,
-      duplicates: quality.duplicate_titles,
-      staleArticles: quality.old_articles,
+      overallStatus: quality.status,
+      dimensions: (quality.dimensions || []).map(dimension => ({
+        key: dimension.key,
+        label: dimension.label,
+        weight: dimension.weight,
+        score: dimension.score,
+        weightedScore: dimension.weighted_score,
+        issues: dimension.issues,
+        status: dimension.status,
+      })),
+      rules: quality.rules || [],
       crawlIssues,
       lastCrawl: latestCrawl,
       sources,
@@ -273,6 +385,46 @@ async function getJson<T>(path: string, signal: AbortSignal): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, { signal });
   if (!response.ok) throw new Error(`Backend merespons ${response.status} ${response.statusText}`);
   return response.json() as Promise<T>;
+}
+
+export async function fetchQualityRuleEvidence(
+  ruleKey: string,
+  resultFilter: EvidenceResultFilter,
+  offset: number,
+  limit: number,
+  signal: AbortSignal,
+): Promise<QualityRuleEvidence> {
+  const params = new URLSearchParams({
+    result: resultFilter,
+    offset: String(offset),
+    limit: String(limit),
+  });
+  const response = await getJson<ApiQualityRuleEvidence>(
+    `/data-quality/rules/${encodeURIComponent(ruleKey)}/evidence?${params}`,
+    signal,
+  );
+  const { dimension_label: dimensionLabel, ...rule } = response.rule;
+  return {
+    rule: { ...rule, dimensionLabel },
+    resultFilter: response.result_filter,
+    total: response.total,
+    filteredTotal: response.filtered_total,
+    limit: response.limit,
+    offset: response.offset,
+    evidence: response.evidence.map(item => ({
+      id: item.id,
+      entityType: item.entity_type,
+      result: item.result,
+      title: item.title,
+      source: item.source,
+      url: item.url,
+      publishedDate: item.published_date,
+      crawlDate: item.crawl_date,
+      observedValue: item.observed_value,
+      expectedValue: item.expected_value,
+      reason: item.reason,
+    })),
+  };
 }
 
 export function DashboardDataProvider({ children }: { children: React.ReactNode }) {
