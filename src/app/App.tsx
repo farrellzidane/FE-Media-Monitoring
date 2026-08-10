@@ -4,6 +4,7 @@ import { Overview } from "./components/Overview";
 import { Articles } from "./components/Articles";
 import { SentimentPage } from "./components/SentimentPage";
 import { DataQuality } from "./components/DataQuality";
+import { TopicsKeywords } from "./components/TopicsKeywords";
 import { DataQualityRuleDetail } from "./components/DataQualityRuleDetail";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { DashboardDataProvider, useDashboardData } from "./DashboardDataContext";
@@ -60,7 +61,7 @@ function DashboardApp() {
       case "quality": return selectedQualityRule
         ? <DataQualityRuleDetail ruleKey={selectedQualityRule} onBack={() => setSelectedQualityRule(null)} />
         : <DataQuality onSelectRule={setSelectedQualityRule} />;
-      case "topics": return <PlaceholderPage title="Topik & Kata Kunci" desc="Eksplorasi kata kunci trending, frekuensi sebutan, dan co-occurrence network." />;
+      case "topics": return <TopicsKeywords />;
       case "sources": return <PlaceholderPage title="Sumber Berita" desc="Analisis mendalam per sumber: volume, sentimen dominan, dan perbandingan." />;
       case "export": return <PlaceholderPage title="Export Data" desc="Ekspor artikel, laporan sentimen, dan data analitik ke CSV atau PDF." />;
       case "settings": return <PlaceholderPage title="Pengaturan" desc="Konfigurasi sumber yang dipantau, jadwal crawl, dan preferensi notifikasi." />;

@@ -164,6 +164,7 @@ interface DashboardData {
   categoryDistribution: ({ name: string; value: number; color: string } & SentimentCounts)[];
   sourceDistribution: ({ name: string; articles: number } & SentimentCounts)[];
   trendingTopics: { topic: string; mentions: number; change: number; sentiment: Sentiment; trend: number[] }[];
+  keywords: { keyword: string; count: number }[];
   insights: Insight[];
   overallSentiment: { name: string; value: number; color: string; count: number }[];
   summary: {
@@ -203,6 +204,7 @@ const emptyData: DashboardData = {
   categoryDistribution: [],
   sourceDistribution: [],
   trendingTopics: [],
+  keywords: [],
   insights: [],
   overallSentiment: [
     { name: "Positif", value: 0, color: "#10b981", count: 0 },
@@ -312,6 +314,7 @@ function mapDashboardData(analytics: ApiAnalytics, rawArticles: ApiArticle[]): D
     sentiment: dominantSentiment,
     trend: [mentions, mentions],
   }));
+  const keywords = (analytics.keywords || []).map(([keyword, count]) => ({ keyword, count }));
 
   const sourceNames = [...new Set(articles.map(article => article.source))];
   const quality = analytics.quality;
@@ -351,6 +354,7 @@ function mapDashboardData(analytics: ApiAnalytics, rawArticles: ApiArticle[]): D
     categoryDistribution,
     sourceDistribution,
     trendingTopics,
+    keywords,
     insights,
     overallSentiment,
     summary: {
@@ -439,7 +443,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     setError(null);
     try {
       const [analytics, articles] = await Promise.all([
-        getJson<ApiAnalytics>("/analytics?keyword_limit=15&article_limit=15", controller.signal),
+        getJson<ApiAnalytics>("/analytics?keyword_limit=60&article_limit=15", controller.signal),
         getJson<ApiArticle[]>("/articles", controller.signal),
       ]);
       setData(mapDashboardData(analytics, articles));
