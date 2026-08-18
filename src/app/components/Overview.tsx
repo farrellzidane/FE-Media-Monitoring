@@ -362,11 +362,11 @@ export function Overview({ onViewAllArticles }: { onViewAllArticles: () => void 
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
             <h3 className="text-slate-900 dark:text-slate-100 mb-1">Distribusi Kategori</h3>
             <p className="text-xs text-slate-400 mb-4">Klik untuk filter dashboard</p>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={categoryDistribution} layout="vertical" margin={{ left: 10, right: 20, top: 0, bottom: 0 }}>
+            <ResponsiveContainer width="100%" height={Math.max(220, categoryDistribution.length * 32)}>
+              <BarChart data={categoryDistribution} layout="vertical" barCategoryGap="25%" margin={{ left: 10, right: 20, top: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" strokeOpacity={0.5} />
                 <XAxis type="number" tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} axisLine={false} />
-                <YAxis dataKey="name" type="category" width={90} tick={{ fontSize: 11, fill: "#64748b" }} tickLine={false} axisLine={false} />
+                <YAxis dataKey="name" type="category" width={90} interval={0} tick={{ fontSize: 11, fill: "#64748b" }} tickLine={false} axisLine={false} />
                 <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                 <Bar dataKey="value" radius={[0, 4, 4, 0]} name="Artikel" cursor="pointer" onClick={(d) => setActiveCategory(activeCategory === d.name ? null : d.name)}>
                   {categoryDistribution.map((entry, i) => (
