@@ -248,9 +248,14 @@ export function Articles({ initialSearch = "" }: { initialSearch?: string }) {
                             >
                               <Bookmark className="w-3.5 h-3.5" />
                             </button>
-                            <button className="p-1.5 rounded text-slate-300 hover:text-slate-500 transition-colors">
+                            <a
+                              href={article.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="p-1.5 rounded text-slate-300 hover:text-slate-500 transition-colors"
+                            >
                               <ExternalLink className="w-3.5 h-3.5" />
-                            </button>
+                            </a>
                           </div>
                         </td>
                       </tr>

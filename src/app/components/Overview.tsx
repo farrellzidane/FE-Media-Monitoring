@@ -150,10 +150,6 @@ export function Overview({ onViewAllArticles }: { onViewAllArticles: () => void 
           <div>
             <div className="flex items-center gap-2 mb-1">
               <h1 className="text-slate-900 dark:text-slate-100">Media Intelligence Overview</h1>
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Monitoring aktif
-              </span>
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400">Monitor cakupan, sentimen, dan topik berkembang di media berita Indonesia.</p>
           </div>
