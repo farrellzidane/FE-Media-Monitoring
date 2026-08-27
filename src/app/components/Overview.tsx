@@ -183,11 +183,10 @@ export function Overview({ onViewAllArticles }: { onViewAllArticles: () => void 
                   <button
                     key={v}
                     onClick={() => setVolumeView(v)}
-                    className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                      volumeView === v
+                    className={`px-3 py-1.5 text-xs font-medium transition-colors ${volumeView === v
                         ? "bg-slate-900 dark:bg-blue-600 text-white"
                         : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
-                    }`}
+                      }`}
                   >
                     {{ daily: "Harian", weekly: "Mingguan", monthly: "Bulanan" }[v]}
                   </button>
@@ -270,9 +269,8 @@ export function Overview({ onViewAllArticles }: { onViewAllArticles: () => void 
                   <button
                     key={key}
                     onClick={() => toggleSeries(key)}
-                    className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded-md border transition-all ${
-                      hiddenSeries.has(key) ? "opacity-35 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700" : "border-slate-200 dark:border-slate-700"
-                    }`}
+                    className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded-md border transition-all ${hiddenSeries.has(key) ? "opacity-35 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700" : "border-slate-200 dark:border-slate-700"
+                      }`}
                   >
                     <span className="w-2 h-2 rounded-full" style={{ background: SENTIMENT_COLORS[key] }} />
                     <span className="text-slate-600 dark:text-slate-300">{key === "positive" ? "Positif" : key === "neutral" ? "Netral" : "Negatif"}</span>
@@ -340,9 +338,7 @@ export function Overview({ onViewAllArticles }: { onViewAllArticles: () => void 
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
                       <span className="text-xs text-slate-400">{topic.mentions.toLocaleString("id-ID")} sebutan</span>
-                      <span className={`text-xs font-medium ${topic.change > 0 ? "text-emerald-600" : topic.change < 0 ? "text-red-500" : "text-slate-400"}`}>
-                        {topic.change > 0 ? "+" : ""}{topic.change}%
-                      </span>
+                      <span className="text-xs text-slate-400">Sentimen topik</span>
                     </div>
                   </div>
                   <SparkLine data={topic.trend} color={SENTIMENT_COLORS[topic.sentiment]} />

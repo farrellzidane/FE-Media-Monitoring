@@ -39,7 +39,7 @@ except RequestException as error:
     st.error(
         "The backend API is unavailable. Start it before opening the dashboard."
     )
-    st.code(f"cd ../BE-Media-Monitoring && uvicorn api:app --reload")
+    st.code(f"cd ../BE-Media-Monitoring-Rev && uvicorn api:app")
     st.caption(f"Backend URL: {API_BASE_URL} ({error})")
     st.stop()
 

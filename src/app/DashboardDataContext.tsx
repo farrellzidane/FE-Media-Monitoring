@@ -310,13 +310,26 @@ function mapDashboardData(analytics: ApiAnalytics, rawArticles: ApiArticle[]): D
   const dominantSentiment: Sentiment = totals.positive >= totals.neutral && totals.positive >= totals.negative
     ? "positive"
     : totals.negative > totals.neutral ? "negative" : "neutral";
-  const trendingTopics = (analytics.keywords || []).slice(0, 6).map(([topic, mentions]) => ({
-    topic,
-    mentions,
-    change: 0,
-    sentiment: dominantSentiment,
-    trend: [mentions, mentions],
-  }));
+  const trendingTopics = (analytics.keywords || []).slice(0, 6).map(([topic, mentions]) => {
+    const topicArticles = articles.filter(article =>
+      article.headline.toLowerCase().split(/\s+/).some(word => word.replace(/[^a-z0-9-]/g, "") === topic.toLowerCase()),
+    );
+    const topicCounts = topicArticles.reduce(
+      (counts, article) => ({ ...counts, [article.sentiment]: counts[article.sentiment] + 1 }),
+      { positive: 0, neutral: 0, negative: 0 },
+    );
+    const topicSentiment: Sentiment = topicCounts.positive >= topicCounts.neutral && topicCounts.positive >= topicCounts.negative
+      ? "positive"
+      : topicCounts.negative > topicCounts.neutral ? "negative" : "neutral";
+
+    return {
+      topic,
+      mentions,
+      change: 0,
+      sentiment: topicSentiment,
+      trend: [topicCounts.positive, topicCounts.neutral, topicCounts.negative],
+    };
+  });
   const keywords = (analytics.keywords || []).map(([keyword, count]) => ({ keyword, count }));
 
   const sourceNames = [...new Set(articles.map(article => article.source))];
