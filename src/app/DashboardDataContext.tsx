@@ -8,6 +8,7 @@ export interface DashboardArticle {
   source: string;
   category: string;
   sentiment: Sentiment;
+  sentimentReason: string;
   confidence: number;
   published: string;
   excerpt: string;
@@ -33,6 +34,7 @@ interface ApiArticle {
   url?: string | null;
   content?: string | null;
   sentiment?: string | null;
+  sentiment_reason?: string | null;
   confidence?: number | null;
 }
 
@@ -255,6 +257,7 @@ function mapDashboardData(analytics: ApiAnalytics, rawArticles: ApiArticle[]): D
       source: raw.source || "Tidak diketahui",
       category: raw.category || "Tanpa kategori",
       sentiment: normalizeSentiment(enriched.sentiment),
+      sentimentReason: enriched.sentiment_reason || raw.sentiment_reason || "",
       confidence: Number(enriched.confidence || 0),
       published: raw.published_date || raw.crawl_date || "",
       excerpt: (raw.content || "Ringkasan artikel tidak tersedia.").slice(0, 600),

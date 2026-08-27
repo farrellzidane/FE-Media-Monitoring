@@ -1,5 +1,11 @@
-import { X, ExternalLink, Bookmark, BookmarkCheck, Copy, Clock, Tag } from "lucide-react";
+import { X, ExternalLink, Bookmark, BookmarkCheck, Copy, Clock, Tag, Info } from "lucide-react";
 import { SentimentBadge } from "./SentimentBadge";
+
+const SENTIMENT_REASON_CLASSES = {
+  positive: "bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-300",
+  neutral: "bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-300",
+  negative: "bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300",
+};
 
 interface Article {
   id: string;
@@ -7,6 +13,7 @@ interface Article {
   source: string;
   category: string;
   sentiment: "positive" | "neutral" | "negative";
+  sentimentReason: string;
   confidence: number;
   published: string;
   excerpt: string;
@@ -105,6 +112,17 @@ export function ArticleDrawer({ article, onClose, onSave }: ArticleDrawerProps) 
             <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Ringkasan Artikel</h3>
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{article.excerpt}</p>
           </div>
+
+          {/* Sentiment reason */}
+          {article.sentimentReason && (
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Alasan Sentimen</h3>
+              <div className={`flex items-start gap-2 p-3 rounded-lg border text-sm leading-relaxed ${SENTIMENT_REASON_CLASSES[article.sentiment]}`}>
+                <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <p>{article.sentimentReason}</p>
+              </div>
+            </div>
+          )}
 
           {/* Related */}
           <div className="space-y-2">
