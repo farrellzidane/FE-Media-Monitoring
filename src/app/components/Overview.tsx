@@ -396,86 +396,73 @@ export function Overview({ onViewAllArticles }: { onViewAllArticles: () => void 
           </div>
         </div>
 
-        {/* Latest coverage + Insights */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          {/* News table */}
-          <div className="xl:col-span-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="text-slate-900 dark:text-slate-100">Cakupan Terbaru</h3>
-              <button
-                type="button"
-                onClick={onViewAllArticles}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-              >
-                Lihat semua <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[600px]">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                    <th className="text-left px-4 py-2 text-xs font-medium text-slate-500 dark:text-slate-400">Sentimen</th>
-                    <th className="text-left px-4 py-2 text-xs font-medium text-slate-500 dark:text-slate-400">Headline</th>
-                    <th className="text-left px-4 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 hidden md:table-cell">Sumber</th>
-                    <th className="text-left px-4 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 hidden lg:table-cell">Konfiden</th>
-                    <th className="text-left px-4 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 hidden lg:table-cell">Tanggal</th>
-                    <th className="px-4 py-2" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {artWithSave.slice(0, 6).map((article) => (
-                    <tr
-                      key={article.id}
-                      className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
-                      onClick={() => setSelectedArticle(article)}
-                    >
-                      <td className="px-4 py-3">
-                        <SentimentBadge sentiment={article.sentiment} size="sm" />
-                      </td>
-                      <td className="px-4 py-3 max-w-xs">
-                        <p className="text-slate-800 dark:text-slate-200 line-clamp-2 leading-snug text-xs" title={article.headline}>
-                          {article.headline}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 hidden md:table-cell whitespace-nowrap">{article.source}</td>
-                      <td className="px-4 py-3 hidden lg:table-cell">
-                        <span className="text-xs tabular-nums text-slate-600 dark:text-slate-300">{(article.confidence * 100).toFixed(0)}%</span>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-400 hidden lg:table-cell whitespace-nowrap">{formatDate(article.published)}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); toggleSave(article.id); }}
-                            className={`p-1.5 rounded transition-colors ${article.saved ? "text-blue-600" : "text-slate-300 hover:text-slate-500"}`}
-                          >
-                            <Bookmark className="w-3.5 h-3.5" />
-                          </button>
-                          <button className="p-1.5 rounded text-slate-300 hover:text-slate-500 transition-colors">
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        {/* Latest coverage */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800">
+            <h3 className="text-slate-900 dark:text-slate-100">Cakupan Terbaru</h3>
+            <button
+              type="button"
+              onClick={onViewAllArticles}
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+            >
+              Lihat semua <ChevronRight className="w-3.5 h-3.5" />
+            </button>
           </div>
-
-          {/* Insights */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
-            <h3 className="text-slate-900 dark:text-slate-100 mb-1">Temuan Otomatis</h3>
-            <p className="text-xs text-slate-400 mb-4">Dideteksi oleh sistem monitoring</p>
-            <div className="space-y-3">
-              {insights.map(insight => (
-                <InsightCard key={insight.id} insight={insight} />
-              ))}
-            </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
+              <thead>
+                <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                  <th className="text-left px-4 py-2 text-xs font-medium text-slate-500 dark:text-slate-400">Sentimen</th>
+                  <th className="text-left px-4 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 w-full">Headline</th>
+                  <th className="text-left px-4 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 hidden md:table-cell whitespace-nowrap">Sumber</th>
+                  <th className="text-left px-4 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 hidden lg:table-cell whitespace-nowrap">Konfiden</th>
+                  <th className="text-left px-4 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 hidden lg:table-cell whitespace-nowrap">Tanggal</th>
+                  <th className="px-4 py-2 whitespace-nowrap" />
+                </tr>
+              </thead>
+              <tbody>
+                {artWithSave.slice(0, 6).map((article) => (
+                  <tr
+                    key={article.id}
+                    className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                    onClick={() => setSelectedArticle(article)}
+                  >
+                    <td className="px-4 py-3">
+                      <SentimentBadge sentiment={article.sentiment} size="sm" />
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="text-slate-800 dark:text-slate-200 line-clamp-2 leading-snug text-xs" title={article.headline}>
+                        {article.headline}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 hidden md:table-cell whitespace-nowrap">{article.source}</td>
+                    <td className="px-4 py-3 hidden lg:table-cell">
+                      <span className="text-xs tabular-nums text-slate-600 dark:text-slate-300">{(article.confidence * 100).toFixed(0)}%</span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-400 hidden lg:table-cell whitespace-nowrap">{formatDate(article.published)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleSave(article.id); }}
+                          className={`p-1.5 rounded transition-colors ${article.saved ? "text-blue-600" : "text-slate-300 hover:text-slate-500"}`}
+                        >
+                          <Bookmark className="w-3.5 h-3.5" />
+                        </button>
+                        <button className="p-1.5 rounded text-slate-300 hover:text-slate-500 transition-colors">
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
 
       {selectedArticle && (
+
         <ArticleDrawer
           article={selectedArticle}
           onClose={() => setSelectedArticle(null)}
