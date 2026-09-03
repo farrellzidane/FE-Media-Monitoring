@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { X, ExternalLink, Bookmark, BookmarkCheck, Copy, Clock, Tag, Info } from "lucide-react";
 import { SentimentBadge } from "./SentimentBadge";
+import { useDashboardData } from "../DashboardDataContext";
 
 const SENTIMENT_REASON_CLASSES = {
   positive: "bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-300",
@@ -27,18 +29,24 @@ interface ArticleDrawerProps {
   onSave: (id: string) => void;
 }
 
-const relatedArticles = [
-  { headline: "BI Rate Stabil, Analis Optimis terhadap Pasar Modal", source: "Kompas", sentiment: "positive" as const },
-  { headline: "Dampak Kebijakan Suku Bunga terhadap Kredit Perumahan", source: "Detik", sentiment: "neutral" as const },
-  { headline: "Investor Asing Merespons Kebijakan Moneter BI", source: "CNBC Indonesia", sentiment: "neutral" as const },
-];
-
 function formatDate(dateStr: string) {
   const d = new Date(dateStr);
   return d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 export function ArticleDrawer({ article, onClose, onSave }: ArticleDrawerProps) {
+  const { data } = useDashboardData();
+  const relatedArticles = useMemo(() => {
+    if (!article) return [];
+    return data.articles
+      .filter(a => a.id !== article.id && (a.category === article.category || a.source === article.source))
+      .sort((a, b) =>
+        Number(b.category === article.category) - Number(a.category === article.category) ||
+        new Date(b.published).getTime() - new Date(a.published).getTime()
+      )
+      .slice(0, 3);
+  }, [data.articles, article]);
+
   if (!article) return null;
 
   return (
@@ -125,20 +133,28 @@ export function ArticleDrawer({ article, onClose, onSave }: ArticleDrawerProps) 
           )}
 
           {/* Related */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Cakupan Terkait</h3>
+          {relatedArticles.length > 0 && (
             <div className="space-y-2">
-              {relatedArticles.map((rel, i) => (
-                <div key={i} className="flex items-start gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                  <SentimentBadge sentiment={rel.sentiment} size="sm" />
-                  <div className="min-w-0">
-                    <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-2 leading-snug">{rel.headline}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{rel.source}</p>
-                  </div>
-                </div>
-              ))}
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Cakupan Terkait</h3>
+              <div className="space-y-2">
+                {relatedArticles.map(rel => (
+                  <a
+                    key={rel.id}
+                    href={rel.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-start gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    <SentimentBadge sentiment={rel.sentiment} size="sm" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-2 leading-snug">{rel.headline}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{rel.source} · {new Date(rel.published).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}</p>
+                    </div>
+                  </a>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Actions */}

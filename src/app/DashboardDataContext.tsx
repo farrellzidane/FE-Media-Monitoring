@@ -312,7 +312,7 @@ function mapDashboardData(analytics: ApiAnalytics, rawArticles: ApiArticle[]): D
     : totals.negative > totals.neutral ? "negative" : "neutral";
   const trendingTopics = (analytics.keywords || []).slice(0, 6).map(([topic, mentions]) => {
     const topicArticles = articles.filter(article =>
-      article.headline.toLowerCase().split(/\s+/).some(word => word.replace(/[^a-z0-9-]/g, "") === topic.toLowerCase()),
+      `${article.headline} ${article.excerpt}`.toLowerCase().includes(topic.toLowerCase()),
     );
     const topicCounts = topicArticles.reduce(
       (counts, article) => ({ ...counts, [article.sentiment]: counts[article.sentiment] + 1 }),
