@@ -11,6 +11,12 @@ const SENTIMENT_COLORS = {
   negative: "#ef4444",
 };
 
+function getConfidenceBand(confidence: number) {
+  if (confidence >= 0.9) return { label: "Sangat Yakin", range: "≥ 90%", colorClass: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300" };
+  if (confidence >= 0.7) return { label: "Cukup Yakin", range: "70–90%", colorClass: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" };
+  return { label: "Perlu Tinjauan", range: "< 70%", colorClass: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300" };
+}
+
 function SentimentRankingBar({ name, positive, neutral, negative }: { name: string; positive: number; neutral: number; negative: number }) {
   return (
     <div className="flex items-center gap-3">
@@ -32,6 +38,7 @@ function SentimentRankingBar({ name, positive, neutral, negative }: { name: stri
 export function SentimentPage() {
   const { data } = useDashboardData();
   const { sentimentTrendData, sourceDistribution, categoryDistribution, overallSentiment: overallData, summary } = data;
+  const confidenceBand = getConfidenceBand(summary.averageConfidence);
   const categorySentiment = categoryDistribution.map(category => {
     const total = category.positive + category.neutral + category.negative;
     return {
@@ -95,7 +102,12 @@ export function SentimentPage() {
                 </div>
               ))}
             </div>
-            <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">Rata-rata kepercayaan model saat ini: <strong>{(summary.averageConfidence * 100).toFixed(1)}%</strong>.</p>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+              Rata-rata kepercayaan model saat ini: <strong>{(summary.averageConfidence * 100).toFixed(1)}%</strong>
+              <span className={`ml-2 inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium ${confidenceBand.colorClass}`}>
+                {confidenceBand.label} · {confidenceBand.range}
+              </span>
+            </p>
           </div>
         </div>
       </div>

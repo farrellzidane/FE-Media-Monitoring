@@ -42,6 +42,12 @@ function formatDate(dateStr: string) {
   return d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+function getConfidenceBand(confidence: number) {
+  if (confidence >= 0.9) return { label: "Sangat Yakin", range: "≥ 90%", colorClass: "text-emerald-700 bg-emerald-50 border-emerald-200 dark:text-emerald-300 dark:bg-emerald-900/20 dark:border-emerald-800" };
+  if (confidence >= 0.7) return { label: "Cukup Yakin", range: "70–90%", colorClass: "text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-300 dark:bg-amber-900/20 dark:border-amber-800" };
+  return { label: "Perlu Tinjauan", range: "< 70%", colorClass: "text-red-700 bg-red-50 border-red-200 dark:text-red-300 dark:bg-red-900/20 dark:border-red-800" };
+}
+
 export function ArticleDrawer({ article, onClose, onSave }: ArticleDrawerProps) {
   const { data } = useDashboardData();
   const relatedArticles = useMemo(() => {
@@ -56,6 +62,7 @@ export function ArticleDrawer({ article, onClose, onSave }: ArticleDrawerProps) 
   }, [data.articles, article]);
 
   if (!article) return null;
+  const confidenceBand = getConfidenceBand(article.confidence);
 
   return (
     <>
@@ -118,9 +125,9 @@ export function ArticleDrawer({ article, onClose, onSave }: ArticleDrawerProps) 
                 style={{ width: `${article.confidence * 100}%` }}
               />
             </div>
-            <p className="text-xs text-slate-400 dark:text-slate-500">
-              Skor &gt; 85% menunjukkan klasifikasi sentimen dengan tingkat keyakinan tinggi.
-            </p>
+            <div className={`mt-1 inline-flex items-center rounded-md border px-2 py-1 text-[10px] font-medium ${confidenceBand.colorClass}`}>
+              {confidenceBand.label} · {confidenceBand.range}
+            </div>
             {article.confidenceReason && (
               <p className="flex items-start gap-1.5 text-xs text-slate-500 dark:text-slate-400 pt-1">
                 <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
@@ -198,11 +205,10 @@ export function ArticleDrawer({ article, onClose, onSave }: ArticleDrawerProps) 
         <div className="px-5 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2">
           <button
             onClick={() => onSave(article.id)}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg border transition-colors flex-1 justify-center ${
-              article.saved
-                ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
-                : "text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
-            }`}
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg border transition-colors flex-1 justify-center ${article.saved
+              ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
+              : "text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+              }`}
           >
             {article.saved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
             {article.saved ? "Tersimpan" : "Simpan"}
