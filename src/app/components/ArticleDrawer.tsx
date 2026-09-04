@@ -9,6 +9,12 @@ const SENTIMENT_REASON_CLASSES = {
   negative: "bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300",
 };
 
+const SCORE_BAR_ROWS: { key: "positive" | "neutral" | "negative"; label: string; barClass: string }[] = [
+  { key: "positive", label: "Positif", barClass: "bg-emerald-500" },
+  { key: "neutral", label: "Netral", barClass: "bg-amber-500" },
+  { key: "negative", label: "Negatif", barClass: "bg-red-500" },
+];
+
 interface Article {
   id: string;
   headline: string;
@@ -17,6 +23,8 @@ interface Article {
   sentiment: "positive" | "neutral" | "negative";
   sentimentReason: string;
   confidence: number;
+  confidenceReason: string;
+  sentimentScores: { positive: number; neutral: number; negative: number } | null;
   published: string;
   excerpt: string;
   url: string;
@@ -113,7 +121,36 @@ export function ArticleDrawer({ article, onClose, onSave }: ArticleDrawerProps) 
             <p className="text-xs text-slate-400 dark:text-slate-500">
               Skor &gt; 85% menunjukkan klasifikasi sentimen dengan tingkat keyakinan tinggi.
             </p>
+            {article.confidenceReason && (
+              <p className="flex items-start gap-1.5 text-xs text-slate-500 dark:text-slate-400 pt-1">
+                <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                <span>{article.confidenceReason}</span>
+              </p>
+            )}
           </div>
+
+          {/* Per-label score breakdown */}
+          {article.sentimentScores && (
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Rincian Skor Sentimen</h3>
+              <div className="space-y-1.5">
+                {SCORE_BAR_ROWS.map(row => (
+                  <div key={row.key} className="space-y-1">
+                    <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
+                      <span>{row.label}</span>
+                      <span className="font-medium">{(article.sentimentScores![row.key] * 100).toFixed(0)}%</span>
+                    </div>
+                    <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${row.barClass}`}
+                        style={{ width: `${article.sentimentScores![row.key] * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Excerpt */}
           <div className="space-y-2">

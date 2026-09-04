@@ -10,6 +10,8 @@ export interface DashboardArticle {
   sentiment: Sentiment;
   sentimentReason: string;
   confidence: number;
+  confidenceReason: string;
+  sentimentScores: { positive: number; neutral: number; negative: number } | null;
   published: string;
   excerpt: string;
   url: string;
@@ -36,6 +38,10 @@ interface ApiArticle {
   sentiment?: string | null;
   sentiment_reason?: string | null;
   confidence?: number | null;
+  confidence_reason?: string | null;
+  score_negative?: number | null;
+  score_neutral?: number | null;
+  score_positive?: number | null;
 }
 
 interface SentimentCounts {
@@ -251,6 +257,13 @@ function mapDashboardData(analytics: ApiAnalytics, rawArticles: ApiArticle[]): D
 
   const articles = sourceArticles.map((raw, index) => {
     const enriched = enrichedByUrl.get(raw.url) || enrichedByTitle.get(raw.title) || raw;
+    const negative = enriched.score_negative ?? raw.score_negative;
+    const neutral = enriched.score_neutral ?? raw.score_neutral;
+    const positive = enriched.score_positive ?? raw.score_positive;
+    const sentimentScores =
+      negative != null && neutral != null && positive != null
+        ? { negative, neutral, positive }
+        : null;
     return {
       id: raw.url || `${index + 1}`,
       headline: raw.title || "Tanpa judul",
@@ -259,6 +272,8 @@ function mapDashboardData(analytics: ApiAnalytics, rawArticles: ApiArticle[]): D
       sentiment: normalizeSentiment(enriched.sentiment),
       sentimentReason: enriched.sentiment_reason || raw.sentiment_reason || "",
       confidence: Number(enriched.confidence || 0),
+      confidenceReason: enriched.confidence_reason || raw.confidence_reason || "",
+      sentimentScores,
       published: raw.published_date || raw.crawl_date || "",
       excerpt: (raw.content || "Ringkasan artikel tidak tersedia.").slice(0, 600),
       url: raw.url || "#",
